@@ -1,0 +1,24 @@
+// Core
+export { World } from './world/World';
+export { WorldConfig, DEFAULT_WORLD_CONFIG } from './world/WorldConfig';
+export { Body, BodyType } from './physics/Body';
+export { Material } from './physics/Material';
+
+// Shapes (usable independently for spatial queries)
+export { Shape, ShapeType } from './geometry/Shape';
+export { Circle } from './geometry/Circle';
+export { Rectangle } from './geometry/Rectangle';
+export { AABB } from './geometry/AABB';
+
+// Math
+export { Vector } from './math/Vector';
+export { EPSILON, EPSILON_SQ, approxEqual, clamp, approxZero } from './math/MathUtils';
+
+// Collision (for advanced users)
+export { Contact } from './collision/Contact';
+export { Manifold } from './collision/Manifold';
+
+// Spatial (for advanced users)
+export { BroadPhase } from './spatial/BroadPhase';
+export { SpatialHash } from './spatial/SpatialHash';
+export { Pair } from './spatial/Pair';
