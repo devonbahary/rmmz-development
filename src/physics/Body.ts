@@ -33,8 +33,6 @@ export class Body {
   // Dynamic properties
   mass: number;
   inverseMass: number; // Cached for performance
-  inertia: number; // For future use if rotation is added
-  inverseInertia: number;
 
   // Force accumulation
   private forceAccumulator: Vector;
@@ -70,18 +68,11 @@ export class Body {
     if (bodyType === BodyType.Static) {
       this.mass = Infinity;
       this.inverseMass = 0;
-      this.inertia = Infinity;
-      this.inverseInertia = 0;
     } else {
       // Calculate mass from shape area and material density
       const area = shape.getArea();
       this.mass = area * material.density;
       this.inverseMass = this.mass > EPSILON ? 1 / this.mass : 0;
-
-      // Calculate inertia (moment of inertia for uniform density)
-      // For AABBs and circles, using simplified approximation
-      this.inertia = (this.mass * area) / 12;
-      this.inverseInertia = this.inertia > EPSILON ? 1 / this.inertia : 0;
     }
   }
 
@@ -93,11 +84,6 @@ export class Body {
     }
     this.mass = mass;
     this.inverseMass = mass > EPSILON ? 1 / mass : 0;
-
-    // Recalculate inertia
-    const area = this.shape.getArea();
-    this.inertia = (mass * area) / 12;
-    this.inverseInertia = this.inertia > EPSILON ? 1 / this.inertia : 0;
   }
 
   setDensity(density: number): void {
