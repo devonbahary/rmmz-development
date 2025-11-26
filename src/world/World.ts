@@ -12,7 +12,7 @@ import { WorldConfig, DEFAULT_WORLD_CONFIG } from './WorldConfig';
  */
 export class World {
   private config: Required<WorldConfig>;
-  private bodies: Map<string, Body>;
+  private bodies: Map<number, Body>;
   private broadPhase: SpatialHash;
   private detector: CollisionDetector;
   private resolver: CollisionResolver;
@@ -22,7 +22,7 @@ export class World {
   private accumulator: number;
 
   // Collision tracking for events
-  private currentCollisions: Set<string>;
+  private currentCollisions: Set<number>;
 
   constructor(config: WorldConfig = {}) {
     // Merge with defaults
@@ -55,7 +55,7 @@ export class World {
     this.broadPhase.remove(body);
   }
 
-  getBody(id: string): Body | undefined {
+  getBody(id: number): Body | undefined {
     return this.bodies.get(id);
   }
 
@@ -166,7 +166,9 @@ export class World {
   /**
    * Generate a unique key for a collision pair
    */
-  private getCollisionKey(bodyA: Body, bodyB: Body): string {
-    return bodyA.id < bodyB.id ? `${bodyA.id}_${bodyB.id}` : `${bodyB.id}_${bodyA.id}`;
+  private getCollisionKey(bodyA: Body, bodyB: Body): number {
+    // Use Cantor pairing function for unique collision key
+    const [a, b] = bodyA.id < bodyB.id ? [bodyA.id, bodyB.id] : [bodyB.id, bodyA.id];
+    return ((a + b) * (a + b + 1)) / 2 + b;
   }
 }

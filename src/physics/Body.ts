@@ -23,7 +23,7 @@ let bodyIdCounter = 0;
  * Bodies add physics behavior to pure geometric shapes
  */
 export class Body {
-  readonly id: string;
+  readonly id: number;
 
   // Kinematic state
   position: Vector;
@@ -47,7 +47,7 @@ export class Body {
     public bodyType: BodyType,
     public material: Material = Material.DEFAULT
   ) {
-    this.id = `body_${bodyIdCounter++}`;
+    this.id = bodyIdCounter++;
 
     this.position = shape.getCenter();
     this.velocity = Vector.zero();

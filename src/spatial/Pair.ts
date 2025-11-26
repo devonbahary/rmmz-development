@@ -12,15 +12,13 @@ export class Pair {
   /**
    * Generate a unique hash for this pair (order-independent)
    */
-  static hash(bodyA: Body, bodyB: Body): string {
-    // Ensure consistent ordering
-    if (bodyA.id < bodyB.id) {
-      return `${bodyA.id}_${bodyB.id}`;
-    }
-    return `${bodyB.id}_${bodyA.id}`;
+  static hash(bodyA: Body, bodyB: Body): number {
+    // Ensure consistent ordering using Cantor pairing function
+    const [a, b] = bodyA.id < bodyB.id ? [bodyA.id, bodyB.id] : [bodyB.id, bodyA.id];
+    return ((a + b) * (a + b + 1)) / 2 + b;
   }
 
-  getHash(): string {
+  getHash(): number {
     return Pair.hash(this.bodyA, this.bodyB);
   }
 }

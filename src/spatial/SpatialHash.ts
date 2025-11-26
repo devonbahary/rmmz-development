@@ -9,7 +9,7 @@ import { Pair } from './Pair';
  */
 export class SpatialHash implements BroadPhase {
   private grid: Map<string, Set<Body>>;
-  private bodyToCells: Map<string, Set<string>>;
+  private bodyToCells: Map<number, Set<string>>;
 
   constructor(private cellSize: number = 100) {
     this.grid = new Map();
@@ -83,7 +83,7 @@ export class SpatialHash implements BroadPhase {
   }
 
   getPairs(): Pair[] {
-    const pairs = new Map<string, Pair>();
+    const pairs = new Map<number, Pair>();
 
     // For each cell
     for (const cell of this.grid.values()) {
