@@ -42,9 +42,6 @@ export class Body {
   layer: number; // Collision layer bitmask
   mask: number; // Collision mask bitmask
 
-  // User data
-  userData: unknown;
-
   constructor(
     public shape: Shape,
     public bodyType: BodyType,
@@ -61,8 +58,6 @@ export class Body {
     this.isSensor = false;
     this.layer = 1; // Default layer
     this.mask = 0xffffffff; // Collides with all layers by default
-
-    this.userData = null;
 
     // Initialize mass
     if (bodyType === BodyType.Static) {
