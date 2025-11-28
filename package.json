@@ -1,48 +1,26 @@
 {
-  "name": "@devon/collision-detection",
-  "version": "0.1.0",
-  "description": "TypeScript 2D physics engine with collision detection for circles and rectangles",
-  "main": "dist/cjs/index.js",
-  "module": "dist/esm/index.js",
-  "types": "dist/types/index.d.ts",
-  "files": [
-    "dist"
+  "name": "collision-detection-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "packages/rmmz-plugins/*"
   ],
   "scripts": {
-    "build": "npm run clean && npm run build:types && npm run build:esm && npm run build:cjs",
-    "build:types": "tsc --project tsconfig.build.json --declaration --emitDeclarationOnly --outDir dist/types",
-    "build:esm": "tsc --project tsconfig.build.json --module ES2020 --outDir dist/esm",
-    "build:cjs": "tsc --project tsconfig.build.json --module CommonJS --outDir dist/cjs",
-    "clean": "rm -rf dist",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage",
-    "lint": "eslint src/**/*.ts",
-    "lint:fix": "eslint src/**/*.ts --fix",
-    "format": "prettier --write \"src/**/*.ts\"",
-    "prepublishOnly": "npm run build && npm test"
+    "build": "npm run build --workspaces",
+    "watch": "concurrently --names \"physics-engine,plugins\" --prefix-colors \"blue,green\" \"npm run watch --workspace=physics-engine\" \"npm run watch --workspace=rmmz-plugins\"",
+    "test": "npm run test --workspaces --if-present",
+    "clean": "npm run clean --workspaces --if-present",
+    "lint": "eslint packages/collision-detection/src/**/*.ts",
+    "lint:fix": "eslint packages/collision-detection/src/**/*.ts --fix",
+    "format": "prettier --write \"packages/collision-detection/**/*.ts\""
   },
-  "keywords": [
-    "physics",
-    "collision",
-    "2d",
-    "game",
-    "rpg-maker",
-    "typescript",
-    "aabb",
-    "circle",
-    "rectangle"
-  ],
-  "author": "Devon",
-  "license": "MIT",
   "devDependencies": {
-    "@types/jest": "^29.5.0",
-    "@typescript-eslint/eslint-plugin": "^6.0.0",
-    "@typescript-eslint/parser": "^6.0.0",
-    "eslint": "^8.50.0",
-    "jest": "^29.7.0",
+    "concurrently": "^8.2.2",
+    "typescript": "^5.2.0",
     "prettier": "^3.0.0",
-    "ts-jest": "^29.1.0",
-    "typescript": "^5.2.0"
+    "eslint": "^8.50.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0"
   }
 }

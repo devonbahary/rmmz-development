@@ -1,7 +1,16 @@
+# RMMZ test projects
 /rmmz/
+
+# Workspace dependencies
 node_modules/
-dist/
+
+# Package builds
+packages/*/dist/
+packages/*/node_modules/
+packages/rmmz-plugins/lib/
+
+# Logs and misc
 *.log
 .DS_Store
-coverage/
 .env
+coverage/

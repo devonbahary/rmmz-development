@@ -1,206 +1,330 @@
-# Collision Detection Library
+# Physics Engine & RMMZ Plugins - Development Monorepo
 
-A standalone TypeScript 2D physics engine with collision detection for circles and rectangles.
+Development workspace for physics-engine library and RMMZ plugins.
 
-## Features
+## Packages
 
-- **Standalone Library** - Framework-agnostic, works anywhere JavaScript runs
-- **2D Physics** - Full physics simulation with velocity, acceleration, mass, and forces
-- **Collision Detection** - Efficient detection between circles and axis-aligned rectangles
-- **Collision Resolution** - Both elastic and inelastic collisions with configurable restitution
-- **Spatial Optimization** - Spatial hash grid for efficient broad-phase collision detection
-- **Floating-Point Safety** - Robust epsilon guards throughout to prevent numerical errors
-- **Pure Geometry** - Shapes can be used independently for area effects and spatial queries
-- **TypeScript** - Full type safety and excellent IDE support
+### [physics-engine](./packages/physics-engine)
 
-## Installation
+TypeScript 2D top-down physics engine with collision detection for circles and rectangles.
+
+### [rmmz-plugins](./packages/rmmz-plugins)
+
+Collection of RPG Maker MZ plugins utilizing the physics-engine library.
+
+**Plugins**
+
+- **physick** - Incorporates the physics-engine into RMMZ.
+
+## Development Workflow
+
+TODO
+
+## Adding New Plugins
+
+Follow these steps to create a new plugin with full development functionality:
+
+### 1. Create Plugin Directory Structure
 
 ```bash
-npm install @devon/collision-detection
+cd packages/rmmz-plugins
+mkdir -p new-plugin/src/{managers,scenes,sprites,windows}
+cd new-plugin
 ```
 
-## Quick Start
+### 2. Initialize Package
 
-```typescript
-import { World, Body, BodyType, Circle, Rectangle, Vector, Material } from '@devon/collision-detection';
-
-// Create a physics world
-const world = new World({
-  gravity: new Vector(0, 980), // 980 pixels/s² downward
-  timeStep: 1/60,              // 60 FPS
-  spatialCellSize: 100         // Grid cell size
-});
-
-// Create a static ground
-const ground = new Body(
-  new Rectangle(new Vector(0, 500), new Vector(800, 520)),
-  BodyType.Static
-);
-world.addBody(ground);
-
-// Create a dynamic bouncing ball
-const ball = new Body(
-  new Circle(new Vector(400, 100), 20),
-  BodyType.Dynamic,
-  Material.BOUNCY
-);
-ball.setMass(1);
-world.addBody(ball);
-
-// Game loop (60 FPS)
-function gameLoop() {
-  world.step(1/60);
-
-  // Render bodies...
-  for (const body of world.getBodies()) {
-    console.log(`Body ${body.id} at`, body.position);
-  }
-
-  requestAnimationFrame(gameLoop);
-}
-
-gameLoop();
+```bash
+npm init -y
 ```
 
-## Using Shapes for Area Effects
+### 3. Create package.json
 
-Shapes can be used independently without physics bodies for spatial queries:
+Replace the generated `package.json` with:
 
-```typescript
-import { Circle, Rectangle, Vector } from '@devon/collision-detection';
-
-// Create an explosion area
-const explosionArea = new Circle(new Vector(300, 300), 100);
-
-// Check which bodies are affected
-for (const body of world.getBodies()) {
-  if (explosionArea.overlaps(body.shape)) {
-    console.log(`Body ${body.id} is in explosion radius!`);
-    // Apply damage, knockback, etc.
+```json
+{
+  "name": "new-plugin",
+  "version": "0.1.0",
+  "description": "Your plugin description",
+  "main": "dist/NewPlugin.js",
+  "scripts": {
+    "build": "node build.js",
+    "watch": "node watch.js",
+    "deploy": "npm run build && cp dist/NewPlugin.js ../../../rmmz/Project1/js/plugins/NewPlugin.js",
+    "dev": "node watch.js",
+    "clean": "rm -rf dist"
+  },
+  "keywords": ["rpg-maker", "rmmz", "plugin"],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "physics-engine": "*"
+  },
+  "devDependencies": {
+    "esbuild": "^0.27.0"
   }
 }
 ```
 
-## Core Concepts
+**Important:** Replace `new-plugin`, `NewPlugin`, and `NewPlugin.js` with your actual plugin name.
 
-### Body Types
+### 4. Create Build Scripts
 
-- **Static** - Immovable objects like walls and ground (infinite mass)
-- **Dynamic** - Fully simulated objects affected by forces and collisions
-- **Kinematic** - Movable but not affected by forces (controlled externally)
-
-### Materials
-
-Pre-defined materials with different physical properties:
-
-```typescript
-Material.DEFAULT    // Balanced properties
-Material.BOUNCY     // High restitution (0.9), low friction
-Material.HEAVY      // High density (10x), low restitution
-Material.LIGHT      // Low density (0.1x), medium restitution
-Material.FRICTIONLESS // Zero friction
-```
-
-### Collision Filtering
-
-Use layer/mask bitmasks for flexible collision groups:
-
-```typescript
-// Player only collides with enemies and walls
-player.layer = 0b0001;  // Player layer
-player.mask = 0b0110;   // Collides with enemies (0b0010) and walls (0b0100)
-
-enemy.layer = 0b0010;   // Enemy layer
-enemy.mask = 0b0001;    // Collides with player
-
-wall.layer = 0b0100;    // Wall layer
-wall.mask = 0xFFFFFFFF; // Collides with everything
-```
-
-## API Reference
-
-### World
-
-```typescript
-const world = new World(config);
-world.addBody(body);
-world.removeBody(body);
-world.step(deltaTime);
-world.queryPoint(point);
-world.queryRegion(aabb);
-world.setGravity(gravity);
-```
-
-### Body
-
-```typescript
-body.applyForce(force);
-body.applyImpulse(impulse);
-body.setMass(mass);
-body.setPosition(position);
-body.setVelocity(velocity);
-```
-
-### Shapes
-
-```typescript
-const circle = new Circle(center, radius);
-const rect = Rectangle.fromCenter(center, width, height);
-
-shape.contains(point);
-shape.overlaps(otherShape);
-shape.getAABB();
-shape.getArea();
-```
-
-### Vector
-
-```typescript
-const v = new Vector(x, y);
-v.add(other);
-v.subtract(other);
-v.multiply(scalar);
-v.normalize();
-v.dot(other);
-v.length();
-```
-
-## RPG Maker MZ Integration
-
-Example plugin integration:
+Create `build.js`:
 
 ```javascript
-// Load the UMD build in your plugin
-const { World, Body, BodyType, Circle, Vector, Material } = Physics2D;
+const esbuild = require('esbuild');
+const fs = require('fs');
+const path = require('path');
 
-// In Scene_Map
-const world = new World({
-  gravity: new Vector(0, 300),
-  spatialCellSize: 100
-});
+console.log('Building NewPlugin plugin...\n');
 
-// Hook into update loop
-const _Scene_Map_update = Scene_Map.prototype.update;
-Scene_Map.prototype.update = function() {
-  _Scene_Map_update.call(this);
-  world.step(1/60);
+// Read RMMZ plugin header
+const headerPath = path.join(__dirname, 'plugin-header.js');
+const header = fs.readFileSync(headerPath, 'utf8').trim();
 
-  // Update sprite positions from physics bodies
-  // ...
-};
+// Build bundle
+esbuild
+  .build({
+    entryPoints: [path.join(__dirname, 'src/index.js')],
+    bundle: true,
+    platform: 'browser',
+    format: 'iife',
+    outfile: path.join(__dirname, 'dist/NewPlugin.js'),
+    minify: false,
+    keepNames: true,
+    banner: {
+      js: header,
+    },
+    external: [],
+    mainFields: ['module', 'main'],
+  })
+  .then(() => {
+    console.log('✓ Plugin built successfully');
+    console.log('  Output: dist/NewPlugin.js');
+
+    const stats = fs.statSync(path.join(__dirname, 'dist/NewPlugin.js'));
+    console.log(`  Size: ${(stats.size / 1024).toFixed(1)} KB`);
+  })
+  .catch((error) => {
+    console.error('Build failed:', error);
+    process.exit(1);
+  });
 ```
 
-## Performance
+Create `watch.js`:
 
-- Handles 100+ bodies at 60 FPS
-- O(n) collision detection with spatial hash (vs O(n²) naive)
-- Minimal garbage collection through object reuse
-- Optimized floating-point operations
+```javascript
+const esbuild = require('esbuild');
+const fs = require('fs');
+const path = require('path');
 
-## License
+// Read RMMZ plugin header
+const headerPath = path.join(__dirname, 'plugin-header.js');
+const header = fs.readFileSync(headerPath, 'utf8').trim();
 
-MIT
+// Deploy configuration
+const RMMZ_PROJECT_PATH = path.join(__dirname, '../../../rmmz/Project1/js/plugins');
+const PLUGIN_NAME = 'NewPlugin.js';
+const deployPath = path.join(RMMZ_PROJECT_PATH, PLUGIN_NAME);
 
-## Contributing
+console.log('👀 Watching NewPlugin plugin for changes...\n');
+console.log(`📦 Output: dist/${PLUGIN_NAME}`);
+console.log(`🚀 Deploy: ${deployPath}\n`);
 
-Issues and pull requests welcome!
+// Build configuration
+const buildConfig = {
+  entryPoints: [path.join(__dirname, 'src/index.js')],
+  bundle: true,
+  platform: 'browser',
+  format: 'iife',
+  outfile: path.join(__dirname, `dist/${PLUGIN_NAME}`),
+  minify: false,
+  keepNames: true,
+  banner: {
+    js: header,
+  },
+  external: [],
+  mainFields: ['module', 'main'],
+};
+
+// Deploy function
+function deploy() {
+  const sourcePath = path.join(__dirname, `dist/${PLUGIN_NAME}`);
+
+  if (!fs.existsSync(RMMZ_PROJECT_PATH)) {
+    console.log(`⚠️  RMMZ project not found: ${RMMZ_PROJECT_PATH}`);
+    console.log('   Skipping deploy...\n');
+    return;
+  }
+
+  try {
+    fs.copyFileSync(sourcePath, deployPath);
+    const stats = fs.statSync(deployPath);
+    console.log(`✓ Deployed to RMMZ (${(stats.size / 1024).toFixed(1)} KB)`);
+  } catch (error) {
+    console.error(`✗ Deploy failed: ${error.message}`);
+  }
+}
+
+// Create context for watch mode
+esbuild
+  .context(buildConfig)
+  .then((ctx) => {
+    ctx.watch();
+
+    console.log('Performing initial build...\n');
+
+    ctx
+      .rebuild()
+      .then(() => {
+        const stats = fs.statSync(buildConfig.outfile);
+        console.log(`✓ Initial build complete (${(stats.size / 1024).toFixed(1)} KB)`);
+        deploy();
+        console.log('\n👀 Watching for changes... (Press Ctrl+C to stop)\n');
+      })
+      .catch((error) => {
+        console.error('✗ Initial build failed:', error);
+      });
+
+    // Handle file changes
+    const srcDir = path.join(__dirname, 'src');
+    let rebuildTimeout;
+
+    fs.watch(srcDir, { recursive: true }, (eventType, filename) => {
+      if (!filename || !filename.endsWith('.js')) return;
+
+      clearTimeout(rebuildTimeout);
+      rebuildTimeout = setTimeout(() => {
+        console.log(`\n🔄 Change detected: ${filename}`);
+        ctx
+          .rebuild()
+          .then(() => {
+            const stats = fs.statSync(buildConfig.outfile);
+            console.log(`✓ Rebuilt (${(stats.size / 1024).toFixed(1)} KB)`);
+            deploy();
+            console.log('');
+          })
+          .catch((error) => {
+            console.error('✗ Build failed:', error.message);
+          });
+      }, 100);
+    });
+
+    // Graceful shutdown
+    process.on('SIGINT', () => {
+      console.log('\n\n👋 Stopping watch mode...');
+      ctx.dispose();
+      process.exit(0);
+    });
+  })
+  .catch((error) => {
+    console.error('✗ Watch setup failed:', error);
+    process.exit(1);
+  });
+```
+
+**Important:** Replace all instances of `NewPlugin` with your plugin name in both files.
+
+### 5. Create Plugin Header
+
+Create `plugin-header.js`:
+
+```javascript
+//=============================================================================
+// NewPlugin.js
+// Version: 0.1.0
+//=============================================================================
+
+/*:
+ * @target MZ
+ * @plugindesc Your plugin description
+ * @author Your Name
+ *
+ * @help NewPlugin.js
+ *
+ * Plugin help text goes here.
+ */
+```
+
+### 6. Create Entry Point
+
+Create `src/index.js`:
+
+```javascript
+// Import physics-engine library (if needed)
+import * as CollisionDetection from 'physics-engine';
+
+// Make available globally (required for RMMZ environment)
+window.CollisionDetection = CollisionDetection;
+
+// Get plugin parameters
+window._NewPlugin_params = PluginManager.parameters('NewPlugin');
+
+// Shared state (accessible via window for modules)
+window._NewPlugin_state = {};
+
+// Import modules (they access shared state via window)
+// import './managers/YourManager.js';
+// import './scenes/Scene_Map.js';
+// import './sprites/Sprite_Body.js';
+
+// Export public API
+window.NewPluginAPI = {
+  // Add your public API methods here
+};
+
+console.log('NewPlugin loaded');
+```
+
+### 7. Install Dependencies
+
+From the **root** directory:
+
+```bash
+npm install
+```
+
+This will:
+
+- Install `esbuild` as a dev dependency
+- Link `physics-engine` from the monorepo workspace
+- Make the plugin available to `watch-all.js`
+
+### 8. Verify Integration
+
+The plugin will automatically be discovered by:
+
+- `npm run watch` (from `packages/rmmz-plugins/`) - watches all plugins
+- `npm run watch` (from root) - watches physics-engine + all plugins
+
+### 9. Development Commands
+
+From the plugin directory:
+
+```bash
+npm run build    # Build once
+npm run watch    # Watch and rebuild (no deploy)
+npm run dev      # Watch, rebuild, and deploy to RMMZ
+npm run deploy   # Build once and deploy to RMMZ
+npm run clean    # Remove dist/ directory
+```
+
+### Customization Checklist
+
+When creating a new plugin, remember to replace:
+
+- [ ] Plugin name in `package.json` (name, description, main)
+- [ ] Plugin name in `build.js` (console.log, outfile filename)
+- [ ] Plugin name in `watch.js` (PLUGIN_NAME, console.log messages)
+- [ ] Plugin name in `plugin-header.js` (filename, @plugindesc, @help)
+- [ ] Plugin name in `src/index.js` (window variables, PluginManager.parameters)
+- [ ] Deploy path in `watch.js` and `package.json` deploy script (if different RMMZ project)
+
+## Notes
+
+- **Monorepo is for development only** - never push this to a public repo
+- Each package publishes to its own GitHub repository
+- Plugins automatically use latest local collision-detection during development
+- npm workspaces handle linking - no manual npm link needed

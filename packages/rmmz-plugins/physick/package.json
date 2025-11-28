@@ -1,0 +1,27 @@
+{
+  "name": "physick",
+  "version": "0.1.0",
+  "description": "RPG Maker MZ physics plugin - modular structure",
+  "main": "dist/Physick.js",
+  "scripts": {
+    "build": "node build.js",
+    "watch": "node watch.js",
+    "deploy": "npm run build && cp dist/Physick.js ../../../rmmz/Project1/js/plugins/Physick.js",
+    "dev": "node watch.js",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "rpg-maker",
+    "rmmz",
+    "plugin",
+    "physics"
+  ],
+  "author": "Devon",
+  "license": "MIT",
+  "dependencies": {
+    "physics-engine": "*"
+  },
+  "devDependencies": {
+    "esbuild": "^0.27.0"
+  }
+}

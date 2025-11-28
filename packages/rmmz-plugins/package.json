@@ -1,0 +1,16 @@
+{
+  "name": "rmmz-plugins",
+  "version": "0.1.0",
+  "description": "RPG Maker MZ plugins by Devon",
+  "private": true,
+  "scripts": {
+    "build": "cd physick && npm run build",
+    "watch": "node watch-all.js",
+    "dev": "node watch-all.js",
+    "deploy": "npm run build && cd physick && npm run deploy",
+    "clean": "cd physick && npm run clean"
+  },
+  "keywords": ["rpg-maker", "rmmz", "plugins"],
+  "author": "Devon",
+  "license": "MIT"
+}
