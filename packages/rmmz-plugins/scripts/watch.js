@@ -1,28 +1,44 @@
+#!/usr/bin/env node
+
+/**
+ * Shared watch script for RMMZ plugins
+ *
+ * Automatically detects plugin name and watches it.
+ * Usage: node ../scripts/watch.js (run from plugin directory)
+ */
+
 const esbuild = require('esbuild');
 const fs = require('fs');
 const path = require('path');
 
+// Determine plugin directory (where this script was called from)
+const pluginDir = process.cwd();
+const pluginName = path.basename(pluginDir);
+
+// Read package.json to get output filename
+const pkg = JSON.parse(fs.readFileSync(path.join(pluginDir, 'package.json'), 'utf8'));
+const outputFileName = path.basename(pkg.main || `dist/${pluginName}.js`);
+
 // Read RMMZ plugin header
-const headerPath = path.join(__dirname, 'plugin-header.js');
+const headerPath = path.join(pluginDir, 'plugin-header.js');
 const header = fs.readFileSync(headerPath, 'utf8').trim();
 
 // Deploy configuration
-const RMMZ_PROJECT_PATH = path.join(__dirname, '../../../rmmz/Project1/js/plugins');
-const PLUGIN_NAME = 'Physick.js';
-const deployPath = path.join(RMMZ_PROJECT_PATH, PLUGIN_NAME);
+const RMMZ_PROJECT_PATH = path.join(pluginDir, '../../../rmmz/Project1/js/plugins');
+const deployPath = path.join(RMMZ_PROJECT_PATH, outputFileName);
 
-console.log('👀 Watching Physick plugin for changes...\n');
-console.log(`📦 Output: dist/${PLUGIN_NAME}`);
+console.log(`👀 Watching ${pluginName} plugin for changes...\n`);
+console.log(`📦 Output: dist/${outputFileName}`);
 console.log(`🚀 Deploy: ${deployPath}\n`);
 
 // Build configuration
 const buildConfig = {
-  entryPoints: [path.join(__dirname, 'src/index.js')],
+  entryPoints: [path.join(pluginDir, 'src/index.js')],
   bundle: true,
   platform: 'browser',
   format: 'iife',
   target: 'es2015',              // RMMZ compatible
-  outfile: path.join(__dirname, `dist/${PLUGIN_NAME}`),
+  outfile: path.join(pluginDir, 'dist', outputFileName),
   minify: false,
   keepNames: true,
   banner: {
@@ -34,7 +50,7 @@ const buildConfig = {
 
 // Deploy function
 function deploy() {
-  const sourcePath = path.join(__dirname, `dist/${PLUGIN_NAME}`);
+  const sourcePath = path.join(pluginDir, 'dist', outputFileName);
 
   // Check if RMMZ project exists
   if (!fs.existsSync(RMMZ_PROJECT_PATH)) {
@@ -71,7 +87,7 @@ esbuild.context(buildConfig).then(ctx => {
   });
 
   // Handle file changes
-  const srcDir = path.join(__dirname, 'src');
+  const srcDir = path.join(pluginDir, 'src');
   let rebuildTimeout;
 
   // Simple file watcher to trigger deploys

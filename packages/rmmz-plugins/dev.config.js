@@ -19,15 +19,15 @@ module.exports = {
     physick: {
       // Output filename in RMMZ (defaults to dist filename)
       outputName: 'Physick.js',
+    },
 
-      // Whether to deploy automatically on build
-      autoDeploy: true,
+    'skip-title': {
+      outputName: 'SkipTitle.js',
     },
 
     // Add more plugins here as you create them:
     // 'my-other-plugin': {
     //   outputName: 'MyPlugin.js',
-    //   autoDeploy: true,
     // },
   },
 

@@ -1,12 +1,12 @@
 {
-  "name": "physick",
+  "name": "skip-title",
   "version": "0.1.0",
-  "description": "RPG Maker MZ physics plugin - modular structure",
-  "main": "dist/Physick.js",
+  "description": "RPG Maker MZ plugin to skip the title screen",
+  "main": "dist/SkipTitle.js",
   "scripts": {
     "build": "node ../scripts/build.js",
     "watch": "node ../scripts/watch.js",
-    "deploy": "npm run build && cp dist/Physick.js ../../../rmmz/Project1/js/plugins/Physick.js",
+    "deploy": "npm run build && cp dist/SkipTitle.js ../../../rmmz/Project1/js/plugins/SkipTitle.js",
     "dev": "node ../scripts/watch.js",
     "clean": "rm -rf dist"
   },
@@ -14,13 +14,10 @@
     "rpg-maker",
     "rmmz",
     "plugin",
-    "physics"
+    "title"
   ],
   "author": "Devon",
   "license": "MIT",
-  "dependencies": {
-    "physics-engine": "*"
-  },
   "devDependencies": {
     "esbuild": "^0.27.0"
   }

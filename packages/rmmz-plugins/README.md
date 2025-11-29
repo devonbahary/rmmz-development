@@ -9,6 +9,7 @@ RMMZ plugins with modular source structure and automatic watch/deploy system.
 ```bash
 # Watch single plugin (recommended)
 cd physick && npm run dev
+cd skip-title && npm run dev
 
 # Watch all plugins
 npm run dev
@@ -46,6 +47,12 @@ Physics engine for RPG Maker MZ using collision-detection library.
 
 **Location:** `physick/`
 **Output:** `dist/Physick.js` → `rmmz/Project1/js/plugins/Physick.js`
+
+### SkipTitle
+Skip the title screen to start the game immediately.
+
+**Location:** `skip-title/`
+**Output:** `dist/SkipTitle.js` → `rmmz/Project1/js/plugins/SkipTitle.js`
 
 ## Documentation
 

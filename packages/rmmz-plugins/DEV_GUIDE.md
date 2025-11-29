@@ -9,6 +9,10 @@
 ```bash
 cd packages/rmmz-plugins/physick
 npm run dev
+
+# Or for other plugins:
+cd packages/rmmz-plugins/skip-title
+npm run dev
 ```
 
 This will:
@@ -96,14 +100,14 @@ Output:
 Found 2 plugin(s):
 
   1. physick (physick)
-  2. my-other-plugin (my-other-plugin)
+  2. skip-title (skip-title)
 
 📍 Deploy target: /path/to/rmmz/Project1/js/plugins
 
 🚀 Starting watch mode for all plugins...
 
 ▶️  Starting physick...
-▶️  Starting my-other-plugin...
+▶️  Starting skip-title...
 
 ✨ All watchers started! Press Ctrl+C to stop all.
 ```
@@ -132,11 +136,9 @@ In `dev.config.js`, customize each plugin:
 plugins: {
   physick: {
     outputName: 'Physick.js',  // Filename in RMMZ
-    autoDeploy: true,           // Auto-deploy on change
   },
   'my-plugin': {
     outputName: 'MyPlugin.js',
-    autoDeploy: false,          // Build only, no deploy
   },
 },
 ```
@@ -177,35 +179,19 @@ touch src/index.js
 touch plugin-header.js
 ```
 
-### 4. Copy Build Scripts
-
-```bash
-# Copy from existing plugin
-cp ../physick/build.js .
-cp ../physick/watch.js .
-```
-
-### 5. Update Configuration
-
-Edit `build.js` and `watch.js` to use your plugin name.
-
-Edit `plugin-header.js` with your plugin metadata.
-
-### 6. Update package.json
+### 4. Update package.json
 
 ```json
 {
   "name": "my-plugin",
   "version": "0.1.0",
+  "main": "dist/MyPlugin.js",
   "scripts": {
-    "build": "node build.js",
-    "watch": "node watch.js",
-    "dev": "node watch.js",
+    "build": "node ../scripts/build.js",
+    "watch": "node ../scripts/watch.js",
+    "dev": "node ../scripts/watch.js",
     "deploy": "npm run build && cp dist/MyPlugin.js ../../../rmmz/Project1/js/plugins/MyPlugin.js",
     "clean": "rm -rf dist"
-  },
-  "dependencies": {
-    "physics-engine": "*"
   },
   "devDependencies": {
     "esbuild": "^0.27.0"
@@ -213,7 +199,13 @@ Edit `plugin-header.js` with your plugin metadata.
 }
 ```
 
-### 7. Start Development
+**Note:** Build and watch scripts are now shared at `../scripts/`. They auto-detect plugin name and configuration from your package.json.
+
+### 5. Create plugin-header.js
+
+Add your RMMZ plugin metadata (see existing plugins for examples).
+
+### 6. Start Development
 
 ```bash
 npm run dev
@@ -345,18 +337,6 @@ npm run dev
 ```
 
 This is faster and produces cleaner output.
-
-### Disable Auto-Deploy for Inactive Plugins
-
-In `dev.config.js`:
-
-```javascript
-plugins: {
-  'inactive-plugin': {
-    autoDeploy: false,  // Build but don't deploy
-  },
-}
-```
 
 ### Clear dist/ Periodically
 

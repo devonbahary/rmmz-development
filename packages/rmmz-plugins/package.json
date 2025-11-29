@@ -4,11 +4,11 @@
   "description": "RPG Maker MZ plugins by Devon",
   "private": true,
   "scripts": {
-    "build": "cd physick && npm run build",
+    "build": "cd physick && npm run build && cd ../skip-title && npm run build",
     "watch": "node watch-all.js",
     "dev": "node watch-all.js",
-    "deploy": "npm run build && cd physick && npm run deploy",
-    "clean": "cd physick && npm run clean"
+    "deploy": "npm run build && cd physick && npm run deploy && cd ../skip-title && npm run deploy",
+    "clean": "cd physick && npm run clean && cd ../skip-title && npm run clean"
   },
   "keywords": ["rpg-maker", "rmmz", "plugins"],
   "author": "Devon",
