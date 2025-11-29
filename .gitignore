@@ -6,6 +6,7 @@ node_modules/
 
 # Package builds
 packages/*/dist/
+packages/rmmz-plugins/*/dist/
 packages/*/node_modules/
 packages/rmmz-plugins/lib/
 
