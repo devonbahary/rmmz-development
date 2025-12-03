@@ -135,7 +135,9 @@ function handleInput() {
 
   if (vx !== 0 || vy !== 0) {
     const velocity = new Vector(vx, vy);
-    const impulse = velocity.multiply(player.mass * impulseMultiplier * (1 / 60));
+    const impulse = velocity
+      .normalize()
+      .multiply(moveSpeed * player.mass * impulseMultiplier * (1 / 60));
     player.applyImpulse(impulse);
   }
 }

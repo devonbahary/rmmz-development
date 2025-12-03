@@ -1,77 +1,77 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Physics Engine Test</title>
     <style>
-        body {
-            margin: 0;
-            padding: 20px;
-            font-family: Arial, sans-serif;
-            background: #1a1a1a;
-            color: #fff;
-        }
-        #canvas {
-            border: 2px solid #444;
-            background: #2a2a2a;
-            display: block;
-            margin: 20px auto;
-        }
-        .info {
-            text-align: center;
-            font-size: 14px;
-            color: #aaa;
-        }
-        #debug {
-            margin-top: 10px;
-            font-family: monospace;
-        }
-        .controls {
-            text-align: center;
-            margin: 20px auto;
-            max-width: 400px;
-        }
-        .control-group {
-            margin: 10px 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-        }
-        .control-group label {
-            min-width: 80px;
-            text-align: right;
-        }
-        .control-group input[type="range"] {
-            flex: 1;
-            max-width: 200px;
-        }
-        .control-group .value {
-            min-width: 50px;
-            font-family: monospace;
-            color: #4a9eff;
-        }
+      body {
+        margin: 0;
+        padding: 20px;
+        font-family: Arial, sans-serif;
+        background: #1a1a1a;
+        color: #fff;
+      }
+      #canvas {
+        border: 2px solid #444;
+        background: #2a2a2a;
+        display: block;
+        margin: 20px auto;
+      }
+      .info {
+        text-align: center;
+        font-size: 14px;
+        color: #aaa;
+      }
+      #debug {
+        margin-top: 10px;
+        font-family: monospace;
+      }
+      .controls {
+        text-align: center;
+        margin: 20px auto;
+        max-width: 400px;
+      }
+      .control-group {
+        margin: 10px 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+      }
+      .control-group label {
+        min-width: 80px;
+        text-align: right;
+      }
+      .control-group input[type='range'] {
+        flex: 1;
+        max-width: 200px;
+      }
+      .control-group .value {
+        min-width: 50px;
+        font-family: monospace;
+        color: #4a9eff;
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <div class="info">
-        <h2>Physics Engine Test</h2>
-        <p>Use Arrow Keys to move the blue player circle</p>
-        <p>Red = Static bodies | Blue = Dynamic bodies</p>
-        <div id="debug"></div>
+      <h2>Physics Engine Test</h2>
+      <p>Use Arrow Keys to move the blue player circle</p>
+      <p>Red = Static bodies | Blue = Dynamic bodies</p>
+      <div id="debug"></div>
     </div>
 
     <div class="controls">
-        <div class="control-group">
-            <label for="gravity">Gravity:</label>
-            <input type="range" id="gravity" min="0" max="5" step="0.1" value="1">
-            <span class="value" id="gravityValue">1.0</span>
-        </div>
+      <div class="control-group">
+        <label for="gravity">Gravity:</label>
+        <input type="range" id="gravity" min="0" max="20" step="0.1" value="1" />
+        <span class="value" id="gravityValue">1.0</span>
+      </div>
     </div>
 
     <canvas id="canvas" width="800" height="600"></canvas>
 
     <script type="module" src="./test-app.bundle.js"></script>
-</body>
+  </body>
 </html>

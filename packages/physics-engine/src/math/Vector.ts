@@ -16,14 +16,6 @@ export class Vector {
     return new Vector(0, 0);
   }
 
-  static one(): Vector {
-    return new Vector(1, 1);
-  }
-
-  static fromAngle(angle: number, length = 1): Vector {
-    return new Vector(Math.cos(angle) * length, Math.sin(angle) * length);
-  }
-
   // ===== Immutable Operations =====
 
   clone(): Vector {
