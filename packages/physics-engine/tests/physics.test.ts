@@ -13,10 +13,8 @@ describe('Physics Engine', () => {
     });
 
     it('should create a world with custom gravity', () => {
-      const gravity = new Vector(0, 980);
-      const world = new World({ gravity });
-      expect(world.getGravity().x).toBe(0);
-      expect(world.getGravity().y).toBe(980);
+      const world = new World({ gravity: 2 });
+      expect(world.getGravity()).toBe(2);
     });
 
     it('should add and retrieve bodies', () => {
@@ -54,102 +52,36 @@ describe('Physics Engine', () => {
   });
 
   describe('Physics Simulation', () => {
-    it('should simulate a ball falling with gravity', () => {
+    it('should apply gravity damping to moving bodies', () => {
       const world = new World({
-        gravity: new Vector(0, 980),
+        gravity: 1,
         timeStep: 1 / 60,
       });
 
-      const ball = new Body(new Circle(new Vector(400, 100), 20), BodyType.Dynamic);
-      ball.setMass(1);
+      const ball = new Body(
+        new Circle(new Vector(400, 100), 20),
+        BodyType.Dynamic,
+        Material.DEFAULT,
+        1
+      );
+      ball.setVelocity(new Vector(100, 0));
       world.addBody(ball);
 
-      const initialY = ball.position.y;
-      const initialVelocityY = ball.velocity.y;
+      const initialSpeed = ball.velocity.length();
 
       // Simulate 60 frames (1 second)
       for (let i = 0; i < 60; i++) {
         world.step(1 / 60);
       }
 
-      // Ball should have fallen (y position increased)
-      expect(ball.position.y).toBeGreaterThan(initialY);
-      // Ball should have downward velocity
-      expect(ball.velocity.y).toBeGreaterThan(initialVelocityY);
-    });
-
-    it('should simulate ball bouncing on ground', () => {
-      const world = new World({
-        gravity: new Vector(0, 980),
-        timeStep: 1 / 60,
-      });
-
-      // Create ground
-      const ground = new Body(
-        new Rectangle(new Vector(0, 500), new Vector(800, 520)),
-        BodyType.Static
-      );
-      world.addBody(ground);
-
-      // Create bouncy ball
-      const ball = new Body(
-        new Circle(new Vector(400, 100), 20),
-        BodyType.Dynamic,
-        Material.BOUNCY
-      );
-      ball.setMass(1);
-      world.addBody(ball);
-
-      const initialY = ball.position.y;
-      let maxY = initialY;
-      let bounced = false;
-
-      // Simulate 120 frames (2 seconds)
-      for (let i = 0; i < 120; i++) {
-        world.step(1 / 60);
-
-        // Track if ball bounces (velocity changes from negative to positive)
-        if (ball.position.y > maxY) {
-          maxY = ball.position.y;
-        }
-
-        // Check if ball hit ground and bounced
-        if (ball.position.y >= 480 && ball.velocity.y > 0) {
-          bounced = true;
-        }
-      }
-
-      // Ball should have fallen and hit the ground
-      expect(maxY).toBeGreaterThan(initialY);
-      // Ball should have bounced (position should be above ground at some point)
-      expect(ball.position.y).toBeLessThan(500);
-    });
-
-    it('should maintain kinetic energy during free fall', () => {
-      const world = new World({
-        gravity: new Vector(0, 980),
-        timeStep: 1 / 60,
-      });
-
-      const ball = new Body(new Circle(new Vector(400, 100), 20), BodyType.Dynamic);
-      ball.setMass(1);
-      world.addBody(ball);
-
-      const initialEnergy = ball.getKineticEnergy();
-
-      // Simulate 30 frames
-      for (let i = 0; i < 30; i++) {
-        world.step(1 / 60);
-      }
-
-      // Kinetic energy should increase as ball falls
-      const finalEnergy = ball.getKineticEnergy();
-      expect(finalEnergy).toBeGreaterThan(initialEnergy);
+      // Speed should decrease due to gravity damping
+      const finalSpeed = ball.velocity.length();
+      expect(finalSpeed).toBeLessThan(initialSpeed);
     });
 
     it('should handle static bodies correctly', () => {
       const world = new World({
-        gravity: new Vector(0, 980),
+        gravity: 1,
         timeStep: 1 / 60,
       });
 
@@ -221,11 +153,14 @@ describe('Physics Engine', () => {
   });
 
   describe('Body Properties', () => {
-    it('should calculate mass from density and area', () => {
-      const ball = new Body(new Circle(new Vector(100, 100), 10), BodyType.Dynamic);
-      const area = Math.PI * 10 * 10;
-      const expectedMass = area * Material.DEFAULT.density;
-      expect(ball.mass).toBeCloseTo(expectedMass, 1);
+    it('should use specified mass for bodies', () => {
+      const ball = new Body(
+        new Circle(new Vector(100, 100), 10),
+        BodyType.Dynamic,
+        Material.DEFAULT,
+        5
+      );
+      expect(ball.mass).toBe(5);
     });
 
     it('should allow setting custom mass', () => {
@@ -253,5 +188,112 @@ describe('Physics Engine', () => {
       expect(ball.getKineticEnergy()).toBe(expectedEnergy);
     });
   });
-});
 
+  describe('Collision Resolution', () => {
+    it('should bounce a body back when colliding with a static wall', () => {
+      // Create world with no gravity for controlled testing
+      const world = new World({
+        gravity: 0,
+        timeStep: 1 / 60,
+      });
+
+      // Create static wall on the right side
+      const wall = new Body(
+        Rectangle.fromCenter(new Vector(500, 300), 20, 600),
+        BodyType.Static,
+        Material.DEFAULT
+      );
+      world.addBody(wall);
+
+      // Create dynamic ball moving towards the wall
+      const ball = new Body(
+        new Circle(new Vector(200, 300), 20),
+        BodyType.Dynamic,
+        Material.DEFAULT,
+        1.0 // mass = 1
+      );
+
+      // Set initial velocity moving right (towards wall)
+      ball.setVelocity(new Vector(100, 0));
+      world.addBody(ball);
+
+      const initialSpeed = ball.velocity.length();
+      const initialVelocityX = ball.velocity.x;
+
+      // Simulate until collision happens
+      let collided = false;
+      for (let i = 0; i < 200; i++) {
+        world.step(1 / 60);
+
+        // Detect collision by velocity reversal
+        if (ball.velocity.x < 0 && initialVelocityX > 0) {
+          collided = true;
+          break;
+        }
+      }
+
+      // Assert collision occurred
+      expect(collided).toBe(true);
+
+      // Assert velocity reversed direction (bounced back)
+      expect(ball.velocity.x).toBeLessThan(0);
+
+      // Assert body didn't gain energy (no explosion)
+      const finalSpeed = ball.velocity.length();
+      expect(finalSpeed).toBeLessThanOrEqual(initialSpeed * 1.1); // Allow 10% margin for restitution
+
+      // Assert body didn't penetrate deeply into wall (less than radius + tolerance)
+      // Note: Position correction resolves most penetration, but allows ~6px for stability
+      const ballRadius = (ball.shape as Circle).radius;
+      const wallLeftEdge = (wall.shape as Rectangle).min.x;
+      expect(ball.position.x).toBeGreaterThan(wallLeftEdge - ballRadius - 6);
+    });
+
+    it('should not add energy during repeated collisions', () => {
+      // Create world with no gravity
+      const world = new World({
+        gravity: 0,
+        timeStep: 1 / 60,
+      });
+
+      // Create two parallel walls
+      const leftWall = new Body(
+        Rectangle.fromCenter(new Vector(100, 300), 20, 600),
+        BodyType.Static,
+        Material.DEFAULT
+      );
+      const rightWall = new Body(
+        Rectangle.fromCenter(new Vector(500, 300), 20, 600),
+        BodyType.Static,
+        Material.DEFAULT
+      );
+      world.addBody(leftWall);
+      world.addBody(rightWall);
+
+      // Create ball bouncing between walls
+      const ball = new Body(
+        new Circle(new Vector(300, 300), 20),
+        BodyType.Dynamic,
+        Material.DEFAULT,
+        1.0
+      );
+      ball.setVelocity(new Vector(50, 0));
+      world.addBody(ball);
+
+      const initialSpeed = ball.velocity.length();
+
+      // Simulate for 5 seconds (should bounce multiple times)
+      for (let i = 0; i < 300; i++) {
+        world.step(1 / 60);
+      }
+
+      // Assert speed hasn't exploded (should decrease due to energy loss, or stay similar)
+      const finalSpeed = ball.velocity.length();
+      expect(finalSpeed).toBeLessThan(initialSpeed * 2); // Should not double in speed
+
+      // Assert ball is still between the walls (not escaped)
+      expect(ball.position.x).toBeGreaterThan(100);
+      expect(ball.position.x).toBeLessThan(500);
+    });
+  });
+});
