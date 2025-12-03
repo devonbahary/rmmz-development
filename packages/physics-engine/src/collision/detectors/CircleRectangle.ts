@@ -8,6 +8,10 @@ import { EPSILON, clamp } from '../../math/MathUtils';
 
 /**
  * Detect collision between a circle and a rectangle
+ *
+ * IMPORTANT: This function always produces normals pointing from rectangle to circle,
+ * regardless of which body is A and which is B. The CollisionDetector is responsible
+ * for flipping the normal when necessary to maintain the A→B convention.
  */
 export function detectCircleRectangle(bodyA: Body, bodyB: Body): Manifold | null {
   const circle = bodyA.shape as Circle;
@@ -66,7 +70,7 @@ export function detectCircleRectangle(bodyA: Body, bodyB: Body): Manifold | null
     return manifold;
   }
 
-  // Normal points from rectangle to circle
+  // Normal points from rectangle to circle (may need flipping in CollisionDetector)
   const normal = offset.divide(distance);
 
   // Penetration depth

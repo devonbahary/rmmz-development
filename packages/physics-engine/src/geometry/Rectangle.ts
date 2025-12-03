@@ -7,15 +7,27 @@ import { EPSILON, EPSILON_SQ, clamp } from '../math/MathUtils';
 /**
  * Axis-Aligned Bounding Box Rectangle
  * No rotation support - AABBs only
+ *
+ * Internally stores center and dimensions as source of truth.
+ * min/max are computed properties derived from center.
  */
 export class Rectangle extends Shape {
   readonly type = ShapeType.Rectangle;
 
-  constructor(
-    public min: Vector,
-    public max: Vector
-  ) {
+  // Center is the source of truth for position
+  public center: Vector;
+  private _width: number;
+  private _height: number;
+
+  constructor(min: Vector, max: Vector) {
     super();
+    // Compute center and dimensions from min/max
+    this._width = max.x - min.x;
+    this._height = max.y - min.y;
+    this.center = new Vector(
+      min.x + this._width / 2,
+      min.y + this._height / 2
+    );
   }
 
   /**
@@ -30,12 +42,27 @@ export class Rectangle extends Shape {
     );
   }
 
+  // min and max are computed from center (source of truth)
+  get min(): Vector {
+    return new Vector(
+      this.center.x - this._width / 2,
+      this.center.y - this._height / 2
+    );
+  }
+
+  get max(): Vector {
+    return new Vector(
+      this.center.x + this._width / 2,
+      this.center.y + this._height / 2
+    );
+  }
+
   get width(): number {
-    return this.max.x - this.min.x;
+    return this._width;
   }
 
   get height(): number {
-    return this.max.y - this.min.y;
+    return this._height;
   }
 
   getAABB(): AABB {
@@ -52,7 +79,7 @@ export class Rectangle extends Shape {
   }
 
   getCenter(): Vector {
-    return new Vector((this.min.x + this.max.x) / 2, (this.min.y + this.max.y) / 2);
+    return this.center;
   }
 
   getArea(): number {

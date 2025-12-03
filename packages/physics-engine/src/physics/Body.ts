@@ -44,14 +44,8 @@ export class Body {
 
     // Position is a direct reference to the shape's center
     // This couples the body position to the shape
-    if (shape.type === 'Circle') {
-      this.position = (shape as any).center;
-    } else if (shape.type === 'Rectangle') {
-      // Rectangle stores min/max, not center - we'll need to handle this differently
-      this.position = shape.getCenter();
-    } else {
-      this.position = shape.getCenter();
-    }
+    // Both Circle and Rectangle store center as source of truth
+    this.position = (shape as any).center;
     this.velocity = Vector.zero();
     this.acceleration = Vector.zero();
 

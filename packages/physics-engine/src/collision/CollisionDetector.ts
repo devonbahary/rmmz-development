@@ -45,10 +45,26 @@ export class CollisionDetector {
       detectCircleCircle
     );
 
-    // Circle vs Rectangle
+    // Circle vs Rectangle (flip normal to maintain A→B convention)
     this.detectors.set(
       this.getDetectorKey(ShapeType.Circle, ShapeType.Rectangle),
-      detectCircleRectangle
+      (bodyA, bodyB) => {
+        const manifold = detectCircleRectangle(bodyA, bodyB);
+        if (manifold) {
+          // detectCircleRectangle produces normal pointing rect→circle (B→A)
+          // Flip it to point circle→rect (A→B) to match convention
+          const correctedManifold = new Manifold(bodyA, bodyB);
+          manifold.contacts.forEach((contact) => {
+            correctedManifold.addContact({
+              point: contact.point,
+              normal: contact.normal.multiply(-1), // Flip normal
+              penetration: contact.penetration,
+            });
+          });
+          return correctedManifold;
+        }
+        return null;
+      }
     );
 
     // Rectangle vs Circle (swap bodies)
@@ -57,12 +73,12 @@ export class CollisionDetector {
       (bodyA, bodyB) => {
         const manifold = detectCircleRectangle(bodyB, bodyA);
         if (manifold) {
-          // Swap bodies but keep normal direction (normal points from rect to circle)
+          // Swap bodies but keep normal direction (already points from rect to circle = A→B)
           const reversedManifold = new Manifold(bodyA, bodyB);
           manifold.contacts.forEach((contact) => {
             reversedManifold.addContact({
               point: contact.point,
-              normal: contact.normal, // Don't flip - normal already points from rect to circle
+              normal: contact.normal, // Don't flip - already points A→B (rect→circle)
               penetration: contact.penetration,
             });
           });

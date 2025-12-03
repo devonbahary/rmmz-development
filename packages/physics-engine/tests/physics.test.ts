@@ -291,5 +291,44 @@ describe('Physics Engine', () => {
       expect(ball.position.x).toBeGreaterThan(100);
       expect(ball.position.x).toBeLessThan(500);
     });
+
+    it('should not add energy during circle-to-dynamic-rectangle collisions', () => {
+      // Create world with no gravity
+      const world = new World({
+        gravity: 0,
+        timeStep: 1 / 60,
+      });
+
+      // Create dynamic rectangle
+      const dynamicRect = new Body(
+        Rectangle.fromCenter(new Vector(400, 300), 80, 80),
+        Material.DEFAULT,
+        1.0
+      );
+      world.addBody(dynamicRect);
+
+      // Create circle bouncing toward rectangle
+      const circle = new Body(
+        new Circle(new Vector(200, 300), 20),
+        Material.DEFAULT,
+        1.0
+      );
+      circle.setVelocity(new Vector(100, 0)); // Moving toward rect
+      world.addBody(circle);
+
+      const initialSpeed = circle.velocity.length();
+
+      // Simulate for 3 seconds (multiple bounces)
+      for (let i = 0; i < 180; i++) {
+        world.step(1 / 60);
+      }
+
+      // Assert speed hasn't exploded
+      const finalSpeed = circle.velocity.length();
+      expect(finalSpeed).toBeLessThan(initialSpeed * 1.5);
+
+      // Verify no runaway motion
+      expect(finalSpeed).toBeLessThan(200);
+    });
   });
 });
