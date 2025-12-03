@@ -57,12 +57,12 @@ export class CollisionDetector {
       (bodyA, bodyB) => {
         const manifold = detectCircleRectangle(bodyB, bodyA);
         if (manifold) {
-          // Reverse manifold (swap bodies and flip normal)
+          // Swap bodies but keep normal direction (normal points from rect to circle)
           const reversedManifold = new Manifold(bodyA, bodyB);
           manifold.contacts.forEach((contact) => {
             reversedManifold.addContact({
               point: contact.point,
-              normal: contact.normal.multiply(-1),
+              normal: contact.normal, // Don't flip - normal already points from rect to circle
               penetration: contact.penetration,
             });
           });

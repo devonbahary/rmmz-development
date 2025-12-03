@@ -4,8 +4,10 @@ import { AABB } from '../geometry/AABB';
 import { SpatialHash } from '../spatial/SpatialHash';
 import { CollisionDetector } from '../collision/CollisionDetector';
 import { CollisionResolver } from '../collision/CollisionResolver';
+import { ContinuousCollisionDetection } from '../collision/ContinuousCollisionDetection';
 import { Manifold } from '../collision/Manifold';
 import { WorldConfig, DEFAULT_WORLD_CONFIG } from './WorldConfig';
+import { EPSILON } from '../math/MathUtils';
 
 /**
  * Main physics world that orchestrates the simulation
@@ -24,6 +26,9 @@ export class World {
   // Collision tracking for events
   private currentCollisions: Set<number>;
 
+  // CCD tracking - stores how much time each body has consumed due to TOI movement
+  private consumedTime: Map<number, number>;
+
   constructor(config: WorldConfig = {}) {
     // Merge with defaults
     this.config = { ...DEFAULT_WORLD_CONFIG, ...config };
@@ -41,6 +46,7 @@ export class World {
     this.accumulator = 0;
 
     this.currentCollisions = new Set();
+    this.consumedTime = new Map();
   }
 
   // ===== Body Management =====
@@ -90,23 +96,68 @@ export class World {
   }
 
   /**
-   * Perform a single fixed timestep simulation
+   * Perform a single fixed timestep simulation with proper TOI integration.
+   *
+   * CORRECTED SIMULATION LOOP:
+   * 1. CCD: Move fast bodies to TOI (partial integration)
+   * 2. Collision detection: Detect all collisions
+   * 3. Collision resolution: Fix velocities (impulse-based)
+   * 4. Integration: Move bodies for remaining time
+   * 5. Update broad-phase and clear forces
+   *
+   * WHY THIS WORKS:
+   * - Bodies moved to TOI have ZERO penetration
+   * - Remaining time integration completes the frame
+   * - Total time = TOI * dt + remaining * dt = dt (conserved)
+   * - No need for aggressive position correction
    */
   private fixedStep(dt: number): void {
-    // 1. Integrate all dynamic bodies
-    for (const body of this.bodies.values()) {
-      body.integrate(dt, this.config.gravity);
-    }
+    // Clear consumed time tracking
+    this.consumedTime.clear();
 
-    // 2. Update broad-phase with new positions
-    for (const body of this.bodies.values()) {
-      this.broadPhase.update(body);
-    }
-
-    // 3. Get collision pairs from broad-phase
+    // 1. CCD: Process fast-moving bodies, move to TOI
+    // Only process first collision per body to keep it simple
     const pairs = this.broadPhase.getPairs();
 
-    // 4. Narrow-phase: detect collisions
+    for (const pair of pairs) {
+      const bodyA = pair.bodyA;
+      const bodyB = pair.bodyB;
+
+      // Skip if either body already handled by CCD this frame
+      if (this.consumedTime.has(bodyA.id) || this.consumedTime.has(bodyB.id)) {
+        continue;
+      }
+
+      // Check if either body is moving fast enough to need CCD
+      const needsCCD =
+        ContinuousCollisionDetection.needsSweptTest(bodyA, dt) ||
+        ContinuousCollisionDetection.needsSweptTest(bodyB, dt);
+
+      if (!needsCCD) {
+        continue;
+      }
+
+      // Run swept collision test
+      const sweptResult = ContinuousCollisionDetection.checkSweptCollision(bodyA, bodyB, dt);
+
+      if (!sweptResult) {
+        continue;
+      }
+
+      // Collision will happen at TOI!
+      // Move both bodies to exact time-of-impact (partial integration)
+      const toiDt = sweptResult.toi * dt;
+      bodyA.integrate(toiDt, this.config.gravity);
+      bodyB.integrate(toiDt, this.config.gravity);
+
+      // Track consumed time for this body
+      this.consumedTime.set(bodyA.id, toiDt);
+      this.consumedTime.set(bodyB.id, toiDt);
+    }
+
+    // 2. COLLISION DETECTION: Detect all collisions at current positions
+    // Bodies that moved to TOI are now exactly touching (zero penetration)
+    // Other bodies are at their original positions
     const manifolds: Manifold[] = [];
     this.currentCollisions.clear();
 
@@ -121,12 +172,31 @@ export class World {
       }
     }
 
-    // 5. Resolve collisions
+    // 3. COLLISION RESOLUTION: Fix velocities and minimal position correction
+    // Position correction is minimal since CCD prevents deep penetration
     if (manifolds.length > 0) {
       this.resolver.resolve(manifolds, dt);
     }
 
-    // 6. Clear forces
+    // 4. INTEGRATION: Move bodies for remaining time
+    // Bodies that moved to TOI: integrate for (dt - consumed)
+    // Other bodies: integrate for full dt
+    for (const body of this.bodies.values()) {
+      const consumed = this.consumedTime.get(body.id) || 0;
+      const remaining = dt - consumed;
+
+      // Only integrate if there's remaining time
+      if (remaining > EPSILON) {
+        body.integrate(remaining, this.config.gravity);
+      }
+    }
+
+    // 5. UPDATE BROAD-PHASE: Update spatial hash with new positions
+    for (const body of this.bodies.values()) {
+      this.broadPhase.update(body);
+    }
+
+    // 6. CLEAR FORCES: Reset force accumulators for next frame
     for (const body of this.bodies.values()) {
       body.clearForces();
     }
@@ -155,12 +225,12 @@ export class World {
     return this.time;
   }
 
-  getGravity(): Vector {
-    return this.config.gravity.clone();
+  getGravity(): number {
+    return this.config.gravity;
   }
 
-  setGravity(gravity: Vector): void {
-    this.config.gravity = gravity.clone();
+  setGravity(gravity: number): void {
+    this.config.gravity = gravity;
   }
 
   /**

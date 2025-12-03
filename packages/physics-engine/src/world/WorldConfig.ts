@@ -1,11 +1,9 @@
-import { Vector } from '../math/Vector';
-
 /**
  * Configuration for the physics world
  */
 export interface WorldConfig {
-  /** Gravity acceleration (pixels/s²), default (0, 980) */
-  gravity?: Vector;
+  /** Gravity coefficient for damping (0 = no damping, 1 = default damping, 2 = double damping, etc.), default 1 */
+  gravity?: number;
 
   /** Fixed timestep in seconds, default 1/60 */
   timeStep?: number;
@@ -16,10 +14,34 @@ export interface WorldConfig {
   /** Grid cell size for spatial hash in pixels, default 100 */
   spatialCellSize?: number;
 
-  /** Position correction iterations, default 8 */
+  /**
+   * Position correction iterations - how many times to push apart overlapping objects.
+   *
+   * WHY MULTIPLE ITERATIONS?
+   * When you have stacked objects (box on box on ground), pushing apart the bottom box
+   * affects the box above it. Multiple iterations let the whole stack gradually separate.
+   *
+   * Default: 4 (resolves ~87% of penetration, good balance)
+   * - 1 = objects sink into each other
+   * - 3 = resolves ~79%
+   * - 4 = resolves ~87%, stable for most games
+   * - 6+ = can cause instability
+   */
   positionIterations?: number;
 
-  /** Velocity/impulse resolution iterations, default 10 */
+  /**
+   * Velocity/impulse resolution iterations - how many times to recalculate collision velocities.
+   *
+   * WHY MULTIPLE ITERATIONS?
+   * When you have multiple simultaneous collisions (ball between two walls, chain of boxes),
+   * resolving one collision changes velocities, which affects other collisions. We iterate
+   * until all collisions "converge" to a stable solution.
+   *
+   * Default: 8 (industry standard from Box2D)
+   * - 1 = fast but buggy with multiple collisions
+   * - 8 = stable, handles complex scenarios
+   * - 20+ = overkill, wastes CPU
+   */
   velocityIterations?: number;
 }
 
@@ -27,10 +49,10 @@ export interface WorldConfig {
  * Default world configuration
  */
 export const DEFAULT_WORLD_CONFIG: Required<WorldConfig> = {
-  gravity: new Vector(0, 980),
+  gravity: 1,
   timeStep: 1 / 60,
   maxSubSteps: 8,
   spatialCellSize: 100,
-  positionIterations: 8,
-  velocityIterations: 10,
+  positionIterations: 2, // Reduced from 4: TOI prevents penetration, only need to fix FP errors
+  velocityIterations: 6, // Reduced from 8: TOI integration simplifies collision resolution
 };

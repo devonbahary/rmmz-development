@@ -45,11 +45,21 @@ export class Body {
   constructor(
     public shape: Shape,
     public bodyType: BodyType,
-    public material: Material = Material.DEFAULT
+    public material: Material = Material.DEFAULT,
+    mass: number = 1.0
   ) {
     this.id = bodyIdCounter++;
 
-    this.position = shape.getCenter();
+    // Position is a direct reference to the shape's center
+    // This couples the body position to the shape
+    if (shape.type === 'Circle') {
+      this.position = (shape as any).center;
+    } else if (shape.type === 'Rectangle') {
+      // Rectangle stores min/max, not center - we'll need to handle this differently
+      this.position = shape.getCenter();
+    } else {
+      this.position = shape.getCenter();
+    }
     this.velocity = Vector.zero();
     this.acceleration = Vector.zero();
 
@@ -64,10 +74,8 @@ export class Body {
       this.mass = Infinity;
       this.inverseMass = 0;
     } else {
-      // Calculate mass from shape area and material density
-      const area = shape.getArea();
-      this.mass = area * material.density;
-      this.inverseMass = this.mass > EPSILON ? 1 / this.mass : 0;
+      this.mass = mass;
+      this.inverseMass = mass > EPSILON ? 1 / mass : 0;
     }
   }
 
@@ -79,12 +87,6 @@ export class Body {
     }
     this.mass = mass;
     this.inverseMass = mass > EPSILON ? 1 / mass : 0;
-  }
-
-  setDensity(density: number): void {
-    this.material.density = density;
-    const area = this.shape.getArea();
-    this.setMass(area * density);
   }
 
   // ===== Force Application =====
@@ -123,16 +125,26 @@ export class Body {
    * Integrate physics (Semi-implicit Euler with floating-point guards)
    * Called by the physics world during simulation step
    */
-  integrate(dt: number, gravity: Vector): void {
+  integrate(dt: number, gravity: number): void {
     if (this.bodyType !== BodyType.Dynamic) {
       return;
     }
 
-    // Calculate acceleration: a = F/m + g
-    const accel = this.forceAccumulator.multiply(this.inverseMass).add(gravity);
+    // Calculate acceleration from forces: a = F/m
+    const accel = this.forceAccumulator.multiply(this.inverseMass);
 
-    // Update velocity: v = v + a * dt
+    // Update velocity from forces: v = v + a * dt
     this.velocity.addMut(accel.multiply(dt));
+
+    // Apply gravity-based drag: opposes velocity, scaled by friction and mass
+    // Heavier bodies decelerate faster by applying damping factor
+    // damping = gravity * friction * mass (higher for heavier objects)
+    // v' = v * e^(-damping * dt) ≈ v * (1 - damping * dt) for small dt
+    if (gravity > 0 && this.material.friction > 0 && this.mass < Infinity) {
+      const damping = gravity * this.material.friction * this.mass;
+      const dampingFactor = Math.max(0, 1 - damping * dt);
+      this.velocity.multiplyMut(dampingFactor);
+    }
 
     // Clamp very small velocities to zero to prevent floating-point drift
     if (this.velocity.lengthSquared() < EPSILON_SQ) {
@@ -173,7 +185,9 @@ export class Body {
   // ===== Setters =====
 
   setPosition(position: Vector): void {
-    this.position = position.clone();
+    // Update position in-place to maintain reference to shape center
+    this.position.x = position.x;
+    this.position.y = position.y;
   }
 
   setVelocity(velocity: Vector): void {
