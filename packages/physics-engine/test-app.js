@@ -3,6 +3,8 @@ import { World, Body, Circle, Rectangle, Vector, Material } from './dist/esm/ind
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 const debugDiv = document.getElementById('debug');
+const gravitySlider = document.getElementById('gravity');
+const gravityValue = document.getElementById('gravityValue');
 
 // Create physics world with same config as RMMZ plugin
 const world = new World({
@@ -57,9 +59,10 @@ staticObstacles.forEach((obstacle) => {
   world.addBody(body);
 });
 
-// Create player (dynamic circle)
+// Create player (dynamic circle) with higher friction to make gravity damping visible
 const playerShape = new Circle(new Vector(200, 200), 20);
-const player = new Body(playerShape, Material.DEFAULT, 1.0);
+const playerMaterial = new Material(0.5, 0.8); // Higher friction for noticeable damping
+const player = new Body(playerShape, playerMaterial, 1.0);
 world.addBody(player);
 
 // Create additional dynamic bodies (blue) - various shapes and sizes
@@ -81,8 +84,9 @@ const dynamicBodies = [
 ];
 
 const dynamicBodyObjects = [];
+const dynamicMaterial = new Material(0.5, 0.8); // Higher friction for visible gravity effects
 dynamicBodies.forEach((shape) => {
-  const body = new Body(shape, Material.DEFAULT, 1.0);
+  const body = new Body(shape, dynamicMaterial, 1.0);
   world.addBody(body);
   dynamicBodyObjects.push(body);
 });
@@ -107,6 +111,13 @@ window.addEventListener('keyup', (e) => {
     keys[e.key] = false;
     e.preventDefault();
   }
+});
+
+// Gravity control
+gravitySlider.addEventListener('input', (e) => {
+  const gravity = parseFloat(e.target.value);
+  world.setGravity(gravity);
+  gravityValue.textContent = gravity.toFixed(1);
 });
 
 // Apply movement impulses (same as RMMZ plugin)
@@ -173,6 +184,7 @@ function render() {
   // Debug info
   const speed = Math.sqrt(player.velocity.x ** 2 + player.velocity.y ** 2);
   debugDiv.innerHTML = `
+        Gravity: ${world.getGravity().toFixed(1)}<br>
         Position: (${player.position.x.toFixed(1)}, ${player.position.y.toFixed(1)})<br>
         Velocity: (${player.velocity.x.toFixed(1)}, ${player.velocity.y.toFixed(1)})<br>
         Speed: ${speed.toFixed(1)}
