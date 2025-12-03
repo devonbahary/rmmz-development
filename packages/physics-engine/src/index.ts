@@ -1,7 +1,7 @@
 // Core
 export { World } from './world/World';
 export { WorldConfig, DEFAULT_WORLD_CONFIG } from './world/WorldConfig';
-export { Body, BodyType } from './physics/Body';
+export { Body } from './physics/Body';
 export { Material } from './physics/Material';
 
 // Shapes (usable independently for spatial queries)

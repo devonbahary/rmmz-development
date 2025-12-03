@@ -2,7 +2,7 @@
  * Jest tests for the physics engine
  */
 
-import { World, Body, BodyType, Circle, Rectangle, Vector, Material } from '../src/index';
+import { World, Body, Circle, Rectangle, Vector, Material } from '../src/index';
 
 describe('Physics Engine', () => {
   describe('World and Body Management', () => {
@@ -20,9 +20,9 @@ describe('Physics Engine', () => {
     it('should add and retrieve bodies', () => {
       const world = new World();
       const ground = new Body(
-        new Rectangle(new Vector(0, 500), new Vector(800, 520)),
-        BodyType.Static
+        new Rectangle(new Vector(0, 500), new Vector(800, 520))
       );
+      ground.setStatic();
       world.addBody(ground);
 
       expect(world.getBodies().length).toBe(1);
@@ -31,7 +31,7 @@ describe('Physics Engine', () => {
 
     it('should remove bodies', () => {
       const world = new World();
-      const body = new Body(new Circle(new Vector(100, 100), 10), BodyType.Dynamic);
+      const body = new Body(new Circle(new Vector(100, 100), 10));
       world.addBody(body);
       expect(world.getBodies().length).toBe(1);
 
@@ -42,8 +42,8 @@ describe('Physics Engine', () => {
 
     it('should clear all bodies', () => {
       const world = new World();
-      world.addBody(new Body(new Circle(new Vector(100, 100), 10), BodyType.Dynamic));
-      world.addBody(new Body(new Circle(new Vector(200, 200), 10), BodyType.Dynamic));
+      world.addBody(new Body(new Circle(new Vector(100, 100), 10)));
+      world.addBody(new Body(new Circle(new Vector(200, 200), 10)));
       expect(world.getBodies().length).toBe(2);
 
       world.clearBodies();
@@ -60,7 +60,6 @@ describe('Physics Engine', () => {
 
       const ball = new Body(
         new Circle(new Vector(400, 100), 20),
-        BodyType.Dynamic,
         Material.DEFAULT,
         1
       );
@@ -86,9 +85,9 @@ describe('Physics Engine', () => {
       });
 
       const staticBody = new Body(
-        new Rectangle(new Vector(0, 500), new Vector(800, 520)),
-        BodyType.Static
+        new Rectangle(new Vector(0, 500), new Vector(800, 520))
       );
+      staticBody.setStatic();
       world.addBody(staticBody);
 
       const initialY = staticBody.position.y;
@@ -136,8 +135,8 @@ describe('Physics Engine', () => {
 
     it('should query bodies at a point', () => {
       const world = new World();
-      const body1 = new Body(new Circle(new Vector(100, 100), 20), BodyType.Dynamic);
-      const body2 = new Body(new Circle(new Vector(200, 200), 20), BodyType.Dynamic);
+      const body1 = new Body(new Circle(new Vector(100, 100), 20));
+      const body2 = new Body(new Circle(new Vector(200, 200), 20));
       world.addBody(body1);
       world.addBody(body2);
 
@@ -156,7 +155,6 @@ describe('Physics Engine', () => {
     it('should use specified mass for bodies', () => {
       const ball = new Body(
         new Circle(new Vector(100, 100), 10),
-        BodyType.Dynamic,
         Material.DEFAULT,
         5
       );
@@ -164,7 +162,7 @@ describe('Physics Engine', () => {
     });
 
     it('should allow setting custom mass', () => {
-      const ball = new Body(new Circle(new Vector(100, 100), 10), BodyType.Dynamic);
+      const ball = new Body(new Circle(new Vector(100, 100), 10));
       ball.setMass(5);
       expect(ball.mass).toBe(5);
       expect(ball.inverseMass).toBe(0.2);
@@ -172,15 +170,15 @@ describe('Physics Engine', () => {
 
     it('should have infinite mass for static bodies', () => {
       const staticBody = new Body(
-        new Rectangle(new Vector(0, 0), new Vector(100, 100)),
-        BodyType.Static
+        new Rectangle(new Vector(0, 0), new Vector(100, 100))
       );
+      staticBody.setStatic();
       expect(staticBody.mass).toBe(Infinity);
       expect(staticBody.inverseMass).toBe(0);
     });
 
     it('should calculate kinetic energy correctly', () => {
-      const ball = new Body(new Circle(new Vector(100, 100), 10), BodyType.Dynamic);
+      const ball = new Body(new Circle(new Vector(100, 100), 10));
       ball.setMass(2);
       ball.setVelocity(new Vector(10, 0));
 
@@ -200,15 +198,14 @@ describe('Physics Engine', () => {
       // Create static wall on the right side
       const wall = new Body(
         Rectangle.fromCenter(new Vector(500, 300), 20, 600),
-        BodyType.Static,
         Material.DEFAULT
       );
+      wall.setStatic();
       world.addBody(wall);
 
       // Create dynamic ball moving towards the wall
       const ball = new Body(
         new Circle(new Vector(200, 300), 20),
-        BodyType.Dynamic,
         Material.DEFAULT,
         1.0 // mass = 1
       );
@@ -259,21 +256,20 @@ describe('Physics Engine', () => {
       // Create two parallel walls
       const leftWall = new Body(
         Rectangle.fromCenter(new Vector(100, 300), 20, 600),
-        BodyType.Static,
         Material.DEFAULT
       );
+      leftWall.setStatic();
       const rightWall = new Body(
         Rectangle.fromCenter(new Vector(500, 300), 20, 600),
-        BodyType.Static,
         Material.DEFAULT
       );
+      rightWall.setStatic();
       world.addBody(leftWall);
       world.addBody(rightWall);
 
       // Create ball bouncing between walls
       const ball = new Body(
         new Circle(new Vector(300, 300), 20),
-        BodyType.Dynamic,
         Material.DEFAULT,
         1.0
       );

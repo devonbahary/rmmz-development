@@ -4,23 +4,12 @@ import { AABB } from '../geometry/AABB';
 import { Material } from './Material';
 import { EPSILON, EPSILON_SQ } from '../math/MathUtils';
 
-/**
- * Body type determines how the body behaves in the physics simulation
- */
-export enum BodyType {
-  /** Immovable, infinite mass - for walls, ground, etc. */
-  Static = 'Static',
-  /** Fully simulated with forces and collisions */
-  Dynamic = 'Dynamic',
-  /** Movable but not affected by forces (controlled externally) */
-  Kinematic = 'Kinematic',
-}
-
 let bodyIdCounter = 0;
 
 /**
  * Rigid body that combines a shape with physics properties
  * Bodies add physics behavior to pure geometric shapes
+ * Static bodies are represented by mass = Infinity
  */
 export class Body {
   readonly id: number;
@@ -44,10 +33,13 @@ export class Body {
 
   constructor(
     public shape: Shape,
-    public bodyType: BodyType,
     public material: Material = Material.DEFAULT,
     mass: number = 1.0
   ) {
+    if (mass === Infinity) {
+      throw new Error('Cannot create body with infinite mass. Use setStatic() instead.');
+    }
+
     this.id = bodyIdCounter++;
 
     // Position is a direct reference to the shape's center
@@ -70,20 +62,38 @@ export class Body {
     this.mask = 0xffffffff; // Collides with all layers by default
 
     // Initialize mass
-    if (bodyType === BodyType.Static) {
-      this.mass = Infinity;
-      this.inverseMass = 0;
-    } else {
-      this.mass = mass;
-      this.inverseMass = mass > EPSILON ? 1 / mass : 0;
-    }
+    this.mass = mass;
+    this.inverseMass = mass > EPSILON ? 1 / mass : 0;
   }
 
   // ===== Mass Management =====
 
+  /**
+   * Set the body to be static (infinite mass, immovable)
+   */
+  setStatic(): void {
+    this.mass = Infinity;
+    this.inverseMass = 0;
+    this.velocity.x = 0;
+    this.velocity.y = 0;
+  }
+
+  /**
+   * Check if the body is static (has infinite mass)
+   */
+  isStatic(): boolean {
+    return this.mass === Infinity;
+  }
+
+  /**
+   * Set the mass of a dynamic body
+   */
   setMass(mass: number): void {
-    if (this.bodyType === BodyType.Static) {
+    if (this.isStatic()) {
       return; // Static bodies always have infinite mass
+    }
+    if (mass === Infinity) {
+      throw new Error('Cannot set mass to Infinity. Use setStatic() instead.');
     }
     this.mass = mass;
     this.inverseMass = mass > EPSILON ? 1 / mass : 0;
@@ -95,7 +105,7 @@ export class Body {
    * Apply a force to the body (accumulated until clearForces)
    */
   applyForce(force: Vector): void {
-    if (this.bodyType !== BodyType.Dynamic) {
+    if (this.isStatic()) {
       return;
     }
     this.forceAccumulator.addMut(force);
@@ -105,7 +115,7 @@ export class Body {
    * Apply an immediate velocity change (impulse)
    */
   applyImpulse(impulse: Vector): void {
-    if (this.bodyType !== BodyType.Dynamic) {
+    if (this.isStatic()) {
       return;
     }
     this.velocity.addMut(impulse.multiply(this.inverseMass));
@@ -126,7 +136,7 @@ export class Body {
    * Called by the physics world during simulation step
    */
   integrate(dt: number, gravity: number): void {
-    if (this.bodyType !== BodyType.Dynamic) {
+    if (this.isStatic()) {
       return;
     }
 
@@ -140,7 +150,7 @@ export class Body {
     // Heavier bodies decelerate faster by applying damping factor
     // damping = gravity * friction * mass (higher for heavier objects)
     // v' = v * e^(-damping * dt) ≈ v * (1 - damping * dt) for small dt
-    if (gravity > 0 && this.material.friction > 0 && this.mass < Infinity) {
+    if (gravity > 0 && this.material.friction > 0 && !this.isStatic()) {
       const damping = gravity * this.material.friction * this.mass;
       const dampingFactor = Math.max(0, 1 - damping * dt);
       this.velocity.multiplyMut(dampingFactor);
@@ -163,7 +173,7 @@ export class Body {
   }
 
   getKineticEnergy(): number {
-    if (this.bodyType !== BodyType.Dynamic) {
+    if (this.isStatic()) {
       return 0;
     }
     return 0.5 * this.mass * this.velocity.lengthSquared();
