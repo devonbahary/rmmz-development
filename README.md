@@ -18,7 +18,7 @@ Collection of RPG Maker MZ plugins utilizing the physics-engine library.
 
 ## Development Workflow
 
-To watch the physics-engine and plugins with automatic deploys to the RMMZ project, run:
+To watch the physics-engine and plugins with automatic deploys to the RMMZ project, navigate to /packages/rmmz-plugins and run:
 `npm run dev`
 
 To playtest the game in a browser, run:

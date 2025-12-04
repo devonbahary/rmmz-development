@@ -4,7 +4,14 @@
 // The superclass of Game_Character. It handles basic information, such as
 // coordinates and images, shared by all characters.
 
-import { Body, BodyType, Circle, Material, Rectangle, Vector } from 'physics-engine';
+import { Body, Circle, Material, Rectangle, Vector } from 'physics-engine';
+import {
+  DEFAULT_CHARACTER_HEIGHT,
+  DEFAULT_CHARACTER_RADIUS,
+  DEFAULT_CHARACTER_WIDTH,
+  MOVEMENT_IMPULSE_MULTIPLIER,
+  MOVEMENT_VELOCITY_THRESHOLD_SQ,
+} from '../constants';
 
 // Property overrides to read from physics body when present
 Object.defineProperties(Game_CharacterBase.prototype, {
@@ -60,12 +67,10 @@ Game_CharacterBase.prototype.initMembers = function () {
 // Create physics body for this character
 Game_CharacterBase.prototype.createPhysicsBody = function (world, options = {}) {
   if (this.body) {
-    console.warn('Character already has physics body');
     return;
   }
 
   const shape = options.shape || 'circle';
-  const bodyType = options.bodyType || BodyType.Dynamic;
   const material = options.material || Material.DEFAULT;
 
   // Get current position in world coordinates
@@ -74,26 +79,20 @@ Game_CharacterBase.prototype.createPhysicsBody = function (world, options = {}) 
   // Create shape
   let physicsShape;
   if (shape === 'circle') {
-    const radius = window._physick_toWorldSize(options.radius || 0.4);
+    const radius = window._physick_toWorldSize(options.radius || DEFAULT_CHARACTER_RADIUS);
     physicsShape = new Circle(worldPos, radius);
   } else {
-    const width = window._physick_toWorldSize(options.width || 0.8);
-    const height = window._physick_toWorldSize(options.height || 0.8);
+    const width = window._physick_toWorldSize(options.width || DEFAULT_CHARACTER_WIDTH);
+    const height = window._physick_toWorldSize(options.height || DEFAULT_CHARACTER_HEIGHT);
     physicsShape = Rectangle.fromCenter(worldPos, width, height);
   }
 
-  // Create body
-  this.body = new Body(physicsShape, bodyType, material);
-
-  // Set mass for dynamic bodies
-  if (bodyType === BodyType.Dynamic && options.mass !== undefined) {
-    this.body.setMass(options.mass);
-  }
+  // Create body with mass
+  const mass = options.mass !== undefined ? options.mass : 1.0;
+  this.body = new Body(physicsShape, material, mass);
 
   // Add to world
   world.addBody(this.body);
-
-  console.log(`Created physics body for character at (${this._x}, ${this._y})`);
 };
 
 // Remove physics body from this character
@@ -113,79 +112,128 @@ Game_CharacterBase.prototype.removePhysicsBody = function (world) {
 
   // Clear reference
   this.body = null;
-
-  console.log('Removed physics body from character');
 };
 
-// Helper: Convert RMMZ direction to velocity vector
-Game_CharacterBase.prototype._getVelocityForDirection = function (d, speedInTiles) {
-  const pixelSpeed = window._physick_toWorldSize(speedInTiles);
-
+// Helper: Decompose dir8 (1-9) into horizontal and vertical components
+// Returns {horz: 0|4|6, vert: 0|2|8}
+Game_CharacterBase.prototype._decomposeDirection = function (d) {
   switch (d) {
+    case 1:
+      return { horz: 4, vert: 2 }; // Down-Left
     case 2:
-      return new Vector(0, pixelSpeed); // Down
+      return { horz: 0, vert: 2 }; // Down
+    case 3:
+      return { horz: 6, vert: 2 }; // Down-Right
     case 4:
-      return new Vector(-pixelSpeed, 0); // Left
+      return { horz: 4, vert: 0 }; // Left
     case 6:
-      return new Vector(pixelSpeed, 0); // Right
+      return { horz: 6, vert: 0 }; // Right
+    case 7:
+      return { horz: 4, vert: 8 }; // Up-Left
     case 8:
-      return new Vector(0, -pixelSpeed); // Up
+      return { horz: 0, vert: 8 }; // Up
+    case 9:
+      return { horz: 6, vert: 8 }; // Up-Right
     default:
-      return Vector.zero();
+      return { horz: 0, vert: 0 }; // No movement
   }
 };
 
-// Override moveStraight to use physics velocity
+// Helper: Determine display direction from movement dir8 and current facing
+// Always returns a cardinal direction (2,4,6,8) for sprite display
+// Logic: Choose the component that differs from current direction
+Game_CharacterBase.prototype._getDisplayDirection = function (movementDir, currentDir) {
+  const { horz, vert } = this._decomposeDirection(movementDir);
+
+  // Pure cardinal movement - use that direction
+  if (horz === 0) return vert || currentDir;
+  if (vert === 0) return horz || currentDir;
+
+  // Diagonal movement - choose the component that changed
+  // Priority 1: If current is horizontal and differs from new horizontal, use vertical
+  if ((currentDir === 4 || currentDir === 6) && currentDir !== horz) {
+    return vert;
+  }
+
+  // Priority 2: If current is vertical and differs from new vertical, use horizontal
+  if ((currentDir === 2 || currentDir === 8) && currentDir !== vert) {
+    return horz;
+  }
+
+  // Priority 3: Default to horizontal component
+  return horz;
+};
+
+// Helper: Convert RMMZ direction (1-9) to normalized velocity vector
+// All directions have the same magnitude (speedInTiles)
+Game_CharacterBase.prototype._getVelocityForDirection = function (d, speedInTiles) {
+  const components = this._decomposeDirection(d);
+  const horz = components.horz;
+  const vert = components.vert;
+
+  // Build velocity from components
+  let vx = 0;
+  let vy = 0;
+
+  if (horz === 4) vx = -1; // Left
+  if (horz === 6) vx = 1; // Right
+  if (vert === 2) vy = 1; // Down (positive Y in RMMZ)
+  if (vert === 8) vy = -1; // Up
+
+  // No movement
+  if (vx === 0 && vy === 0) {
+    return Vector.zero();
+  }
+
+  // Convert to world coordinates and normalize
+  const pixelSpeed = window._physick_toWorldSize(speedInTiles);
+  const velocity = new Vector(vx, vy);
+
+  // Normalize to ensure diagonal movement has same magnitude as cardinal
+  return velocity.normalize().multiply(pixelSpeed);
+};
+
+// Override moveStraight to handle all 8 directions (unified interface)
+// Now accepts dir8 (1-9), not just cardinal (2,4,6,8)
 const _Game_CharacterBase_moveStraight = Game_CharacterBase.prototype.moveStraight;
 Game_CharacterBase.prototype.moveStraight = function (d) {
-  console.log('moveStraight');
+  // Fall back to vanilla if no physics body
   if (!this.body) {
     return _Game_CharacterBase_moveStraight.call(this, d);
   }
 
-  // Physics handles collision - always succeed
+  // Physics-based movement always succeeds (collision handled by engine)
   this.setMovementSuccess(true);
-  this.setDirection(d);
 
-  // Calculate and apply velocity
+  // Update sprite direction using intelligent selection algorithm
+  const newDirection = this._getDisplayDirection(d, this.direction());
+  this.setDirection(newDirection);
+
+  // Calculate normalized velocity for any dir8 input
   const speed = this.distancePerFrame();
   const velocity = this._getVelocityForDirection(d, speed);
-  this.body.setVelocity(velocity);
-  console.log(this.body.velocity);
 
+  // Apply impulse (same formula as before: velocity * mass * MOVEMENT_IMPULSE_MULTIPLIER)
+  const impulse = velocity.multiply(this.body.mass * MOVEMENT_IMPULSE_MULTIPLIER);
+  this.body.applyImpulse(impulse);
+
+  // Maintain compatibility with step counting
   this.increaseSteps();
 };
 
-// Override moveDiagonally to use physics velocity
-const _Game_CharacterBase_moveDiagonally = Game_CharacterBase.prototype.moveDiagonally;
+// Override moveDiagonally - now just a wrapper around unified moveStraight
+// Kept for compatibility with RMMZ event commands (ROUTE_MOVE_LOWER_L, etc.)
 Game_CharacterBase.prototype.moveDiagonally = function (horz, vert) {
-  if (!this.body) {
-    return _Game_CharacterBase_moveDiagonally.call(this, horz, vert);
-  }
+  // Convert horz + vert to dir8 and delegate to moveStraight
+  let dir8 = 5; // Default: no movement
 
-  this.setMovementSuccess(true);
+  if (horz === 4 && vert === 2) dir8 = 1; // Down-Left
+  if (horz === 6 && vert === 2) dir8 = 3; // Down-Right
+  if (horz === 4 && vert === 8) dir8 = 7; // Up-Left
+  if (horz === 6 && vert === 8) dir8 = 9; // Up-Right
 
-  // Calculate diagonal velocity (normalized)
-  const speed = this.distancePerFrame();
-  const horzVel = this._getVelocityForDirection(horz, speed);
-  const vertVel = this._getVelocityForDirection(vert, speed);
-
-  // Combine and normalize to maintain consistent speed
-  const velocity = horzVel.add(vertVel);
-  const pixelSpeed = window._physick_toWorldSize(speed);
-  const normalizedVelocity = velocity.normalize().multiply(pixelSpeed);
-
-  this.body.setVelocity(normalizedVelocity);
-
-  this.increaseSteps();
-
-  // Handle direction updates
-  if (this._direction === this.reverseDir(horz)) {
-    this.setDirection(horz);
-  }
-  if (this._direction === this.reverseDir(vert)) {
-    this.setDirection(vert);
-  }
+  // Delegate to unified implementation
+  this.moveStraight(dir8);
 };
 
 // Override jump to use physics impulse
@@ -270,7 +318,28 @@ Game_CharacterBase.prototype.isMoving = function () {
   }
 
   // Check if body has significant velocity
-  return this.body.velocity.lengthSquared() > 0.01;
+  return this.body.velocity.lengthSquared() > MOVEMENT_VELOCITY_THRESHOLD_SQ;
+};
+
+// Override scrolledX and scrolledY to read directly from physics body
+// Vanilla implementation reads _realX/_realY directly which may not be in sync
+// Instead, we calculate scroll position directly from the physics body
+const _Game_CharacterBase_scrolledX = Game_CharacterBase.prototype.scrolledX;
+Game_CharacterBase.prototype.scrolledX = function () {
+  if (this.body) {
+    const tiles = window._physick_fromWorldCoords(this.body.position.x, this.body.position.y);
+    return $gameMap.adjustX(tiles.x);
+  }
+  return _Game_CharacterBase_scrolledX.call(this);
+};
+
+const _Game_CharacterBase_scrolledY = Game_CharacterBase.prototype.scrolledY;
+Game_CharacterBase.prototype.scrolledY = function () {
+  if (this.body) {
+    const tiles = window._physick_fromWorldCoords(this.body.position.x, this.body.position.y);
+    return $gameMap.adjustY(tiles.y);
+  }
+  return _Game_CharacterBase_scrolledY.call(this);
 };
 
 // Override canPass to always return true when body exists
@@ -293,7 +362,7 @@ Game_CharacterBase.prototype.canPassDiagonally = function (x, y, horz, vert) {
   return _Game_CharacterBase_canPassDiagonally.call(this, x, y, horz, vert);
 };
 
-// Override setThrough to update body sensor flag
+// update body sensor flag
 const _Game_CharacterBase_setThrough = Game_CharacterBase.prototype.setThrough;
 Game_CharacterBase.prototype.setThrough = function (through) {
   _Game_CharacterBase_setThrough.call(this, through);
