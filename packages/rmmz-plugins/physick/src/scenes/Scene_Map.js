@@ -4,27 +4,7 @@
 
 import { Body, Circle, Material, Rectangle, Vector, World } from 'physics-engine';
 import { DEFAULT_CHARACTER_RADIUS, EDGE_THICKNESS, TILE_CENTER_OFFSET } from '../constants';
-
-// game features 48px in each 1 game unit tile
-const toWorldSize = (gameUnit) => {
-  // assuming width + height are the same
-  const pxInGameUnit = Math.max($gameMap.width(), $gameMap.height());
-  return gameUnit * pxInGameUnit;
-};
-
-const toWorldCoords = (x, y) => {
-  const worldX = toWorldSize(x + TILE_CENTER_OFFSET);
-  const worldY = toWorldSize(y + TILE_CENTER_OFFSET);
-  return new Vector(worldX, worldY);
-};
-
-const fromWorldCoords = (worldX, worldY) => {
-  const pxInGameUnit = Math.max($gameMap.width(), $gameMap.height());
-  return {
-    x: worldX / pxInGameUnit - TILE_CENTER_OFFSET,
-    y: worldY / pxInGameUnit - TILE_CENTER_OFFSET,
-  };
-};
+import { toWorldSize, toWorldCoords, fromWorldCoords, aggregateEdgeArray, aggregateIntoRectangles } from '../utilities/map';
 
 // Export helpers globally for Game_CharacterBase access
 window._physick_toWorldCoords = toWorldCoords;
@@ -160,101 +140,16 @@ Scene_Map.prototype.getTileEdges = function () {
 // Aggregate edges (merge adjacent aligned edges into longer segments)
 Scene_Map.prototype.aggregateEdges = function (edges) {
   return {
-    horizontal: this._aggregateEdgeArray(edges.horizontal),
-    vertical: this._aggregateEdgeArray(edges.vertical),
+    horizontal: aggregateEdgeArray(edges.horizontal),
+    vertical: aggregateEdgeArray(edges.vertical),
   };
-};
-
-Scene_Map.prototype._aggregateEdgeArray = function (edgeArray) {
-  if (edgeArray.length === 0) return [];
-
-  // Sort by position, then by start coordinate
-  const sorted = edgeArray.slice().sort((a, b) => {
-    if (a.position !== b.position) return a.position - b.position;
-    return a.start - b.start;
-  });
-
-  const aggregated = [];
-  let current = sorted[0];
-
-  for (let i = 1; i < sorted.length; i++) {
-    const next = sorted[i];
-
-    // Merge if adjacent and aligned
-    if (next.position === current.position && next.start === current.end) {
-      current.end = next.end;
-      current.isFullTile = current.isFullTile && next.isFullTile;
-    } else {
-      aggregated.push(current);
-      current = next;
-    }
-  }
-
-  aggregated.push(current);
-  return aggregated;
 };
 
 // Aggregate tiles into rectangles using greedy algorithm
 Scene_Map.prototype.aggregateIntoRectangles = function (tiles) {
-  if (tiles.length === 0) return [];
-
   const width = $gameMap.width();
   const height = $gameMap.height();
-
-  // Create 2D grid for fast lookup
-  const grid = Array(height)
-    .fill(null)
-    .map(() => Array(width).fill(false));
-  for (const tile of tiles) {
-    grid[tile.y][tile.x] = true;
-  }
-
-  const rectangles = [];
-  const visited = Array(height)
-    .fill(null)
-    .map(() => Array(width).fill(false));
-
-  // Greedy rectangle merging: start from each unvisited tile
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      if (!grid[y][x] || visited[y][x]) continue;
-
-      // Find maximum width for this row
-      let maxWidth = 1;
-      while (x + maxWidth < width && grid[y][x + maxWidth] && !visited[y][x + maxWidth]) {
-        maxWidth++;
-      }
-
-      // Extend rectangle downward as far as possible
-      let maxHeight = 1;
-      let canExtend = true;
-      while (y + maxHeight < height && canExtend) {
-        for (let dx = 0; dx < maxWidth; dx++) {
-          if (!grid[y + maxHeight][x + dx] || visited[y + maxHeight][x + dx]) {
-            canExtend = false;
-            break;
-          }
-        }
-        if (canExtend) maxHeight++;
-      }
-
-      // Mark all tiles in this rectangle as visited
-      for (let dy = 0; dy < maxHeight; dy++) {
-        for (let dx = 0; dx < maxWidth; dx++) {
-          visited[y + dy][x + dx] = true;
-        }
-      }
-
-      rectangles.push({
-        x: x,
-        y: y,
-        width: maxWidth,
-        height: maxHeight,
-      });
-    }
-  }
-
-  return rectangles;
+  return aggregateIntoRectangles(tiles, width, height);
 };
 
 // Create static physics bodies from rectangles
