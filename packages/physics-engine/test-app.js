@@ -123,7 +123,7 @@ gravitySlider.addEventListener('input', (e) => {
 // Apply movement impulses (same as RMMZ plugin)
 function handleInput() {
   const moveSpeed = 200; // pixels per second
-  const impulseMultiplier = 5; // Same 5x multiplier as RMMZ plugin
+  const impulseMultiplier = 20; // Same 5x multiplier as RMMZ plugin
 
   let vx = 0;
   let vy = 0;
@@ -138,7 +138,7 @@ function handleInput() {
     const impulse = velocity
       .normalize()
       .multiply(moveSpeed * player.mass * impulseMultiplier * (1 / 60));
-    player.applyImpulse(impulse);
+    player.applyMovement(impulse);
   }
 }
 

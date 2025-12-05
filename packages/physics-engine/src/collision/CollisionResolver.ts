@@ -153,6 +153,11 @@ export class CollisionResolver {
       return;
     }
 
+    // Check for intentional movement collision (dynamic vs static)
+    const isAStatic = bodyA.inverseMass < EPSILON;
+    const isBStatic = bodyB.inverseMass < EPSILON;
+    const isDynamicVsStatic = (isAStatic && !isBStatic) || (!isAStatic && isBStatic);
+
     // Process each contact point in the manifold
     // (Most collisions have 1-2 contact points)
     for (const contact of manifold.contacts) {
@@ -171,10 +176,29 @@ export class CollisionResolver {
         continue;
       }
 
-      // 4. Determine effective restitution (handle resting contacts)
+      // 4. Determine effective restitution (handle resting contacts and intentional movement)
+      let effectiveRestitution = manifold.restitution;
+
+      // OVERRIDE restitution for intentional movement into static bodies
+      // This prevents bounce when a character deliberately walks into a wall
+      if (isDynamicVsStatic) {
+        const movingBody = isAStatic ? bodyB : bodyA;
+        const normalDirection = isAStatic ? 1 : -1;
+
+        // Check if body has intentional movement
+        if (movingBody.movementVector.lengthSquared() > EPSILON_SQ) {
+          // Check if movement direction is INTO the collision
+          const movementDotNormal = movingBody.movementVector.dot(contact.normal) * normalDirection;
+
+          if (movementDotNormal < -EPSILON) {
+            // Moving intentionally into wall - NO BOUNCE
+            effectiveRestitution = 0;
+          }
+        }
+      }
+
       // RESTING CONTACT: When objects are barely moving (like a box sitting on ground),
       // we don't want tiny bounces. Override restitution to 0 (no bounce).
-      let effectiveRestitution = manifold.restitution;
       if (Math.abs(velocityAlongNormal) < this.restingVelocityThreshold) {
         effectiveRestitution = 0; // No bounce for resting objects
       }

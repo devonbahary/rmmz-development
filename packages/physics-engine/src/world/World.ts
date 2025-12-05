@@ -196,9 +196,10 @@ export class World {
       this.broadPhase.update(body);
     }
 
-    // 6. CLEAR FORCES: Reset force accumulators for next frame
+    // 6. CLEAR FORCES AND MOVEMENT: Reset force accumulators and movement vectors for next frame
     for (const body of this.bodies.values()) {
       body.clearForces();
+      body.clearMovement();
     }
   }
 

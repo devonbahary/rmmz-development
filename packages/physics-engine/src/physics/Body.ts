@@ -26,6 +26,9 @@ export class Body {
   // Force accumulation
   private forceAccumulator: Vector;
 
+  // Movement tracking for intentional character movement
+  movementVector: Vector;
+
   // Collision properties
   isSensor: boolean; // Detects collisions but doesn't resolve them
   layer: number; // Collision layer bitmask
@@ -50,6 +53,7 @@ export class Body {
     this.acceleration = Vector.zero();
 
     this.forceAccumulator = Vector.zero();
+    this.movementVector = Vector.zero();
 
     this.isSensor = false;
     this.layer = 1; // Default layer
@@ -116,11 +120,40 @@ export class Body {
   }
 
   /**
+   * Apply intentional movement impulse (for character control)
+   * Records the movement direction for use in collision resolution
+   */
+  applyMovement(impulse: Vector): void {
+    if (this.isStatic()) {
+      return;
+    }
+
+    // Store the DIRECTION of movement (normalized), not the impulse magnitude
+    // This makes collision detection simpler and more accurate
+    if (impulse.lengthSquared() > EPSILON_SQ) {
+      this.movementVector = impulse.normalize();
+    } else {
+      this.movementVector = Vector.zero();
+    }
+
+    // Apply the impulse normally
+    this.applyImpulse(impulse);
+  }
+
+  /**
    * Clear accumulated forces (called after integration)
    */
   clearForces(): void {
     this.forceAccumulator.x = 0;
     this.forceAccumulator.y = 0;
+  }
+
+  /**
+   * Clear the movement vector after physics step
+   */
+  clearMovement(): void {
+    this.movementVector.x = 0;
+    this.movementVector.y = 0;
   }
 
   // ===== Integration =====
