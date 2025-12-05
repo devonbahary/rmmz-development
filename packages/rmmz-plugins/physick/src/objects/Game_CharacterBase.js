@@ -133,16 +133,16 @@ Game_CharacterBase.prototype.moveStraight = function (d) {
   this.setMovementSuccess(true);
 
   // Update sprite direction using intelligent selection algorithm
-  const newDirection = this._getDisplayDirection(d, this.direction());
+  const newDirection = getDisplayDirection(d, this.direction());
   this.setDirection(newDirection);
 
   // Calculate normalized velocity for any dir8 input
   const speed = this.distancePerFrame();
-  const velocity = this._getVelocityForDirection(d, speed);
+  const velocity = getVelocityForDirection(d, speed);
 
-  // Apply impulse (same formula as before: velocity * mass * MOVEMENT_IMPULSE_MULTIPLIER)
+  // Apply movement impulse (tracks intentional movement for collision resolution)
   const impulse = velocity.multiply(this.body.mass * MOVEMENT_IMPULSE_MULTIPLIER);
-  this.body.applyImpulse(impulse);
+  this.body.applyMovement(impulse);
 
   // Maintain compatibility with step counting
   this.increaseSteps();

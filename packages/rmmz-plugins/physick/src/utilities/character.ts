@@ -5,7 +5,7 @@ import { TILE_CENTER_OFFSET } from '../constants';
  * Decompose dir8 (1-9) into horizontal and vertical components
  * Returns {horz: 0|4|6, vert: 0|2|8}
  */
-export function decomposeDirection(d: number): { horz: number; vert: number } {
+function decomposeDirection(d: number): { horz: number; vert: number } {
   switch (d) {
     case 1:
       return { horz: 4, vert: 2 }; // Down-Left
