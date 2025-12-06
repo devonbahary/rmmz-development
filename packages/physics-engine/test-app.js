@@ -8,7 +8,7 @@ const gravityValue = document.getElementById('gravityValue');
 
 // Create physics world with same config as RMMZ plugin
 const world = new World({
-  gravity: 1,
+  gravity: 20,
   timeStep: 1 / 60,
   positionIterations: 1,
   velocityIterations: 6,

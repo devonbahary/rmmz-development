@@ -3,6 +3,18 @@
 //
 // Centralized configuration values for the physics plugin
 
+import { Material } from 'physics-engine';
+
+// ===== Material Constants =====
+
+/**
+ * Material for dynamic characters
+ * Matches test-app.js (line 64) for perfect collision behavior
+ * - Restitution 0.5: Works with physics engine's anti-bounce logic
+ * - Friction 0.8: Provides proper damping when gravity = 1
+ */
+export const CHARACTER_MATERIAL = new Material(0.5, 0.8);
+
 // ===== Movement Constants =====
 
 /**

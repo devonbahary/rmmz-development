@@ -53,6 +53,6 @@ export const DEFAULT_WORLD_CONFIG: Required<WorldConfig> = {
   timeStep: 1 / 60,
   maxSubSteps: 8,
   spatialCellSize: 100,
-  positionIterations: 2, // Reduced from 4: TOI prevents penetration, only need to fix FP errors
-  velocityIterations: 6, // Reduced from 8: TOI integration simplifies collision resolution
+  positionIterations: 1,
+  velocityIterations: 6,
 };

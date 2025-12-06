@@ -3,7 +3,7 @@
 //=============================================================================
 
 import { Body, World } from 'physics-engine';
-import { DEFAULT_CHARACTER_RADIUS } from '../constants';
+import { DEFAULT_CHARACTER_RADIUS, CHARACTER_MATERIAL } from '../constants';
 import { toWorldSize, getImpassableTileRects, getImpassableTileEdges } from '../utilities/map';
 
 const _Scene_Map_onMapLoaded = Scene_Map.prototype.onMapLoaded;
@@ -21,9 +21,13 @@ Scene_Map.prototype.initPhysickWorld = function () {
   const width = $gameMap.width();
   const height = $gameMap.height();
 
+  console.log('is this even working??');
   this.world = new World({
     spatialCellSize: toWorldSize(1), // spatialCell should be 1 tile in size
-    gravity: 20, // Default damping brings characters to rest
+    gravity: 10,
+    timeStep: 1 / 60,
+    positionIterations: 1,
+    velocityIterations: 6,
   });
 
   this.createStaticBodies();
@@ -51,6 +55,7 @@ Scene_Map.prototype.initPhysickPlayer = function () {
     shape: 'circle',
     radius: DEFAULT_CHARACTER_RADIUS, // in game units (tiles)
     mass: 1,
+    material: CHARACTER_MATERIAL, // Material(0.5, 0.8) - match test-app.js
   });
 };
 
