@@ -9,11 +9,9 @@ import {
   DEFAULT_CHARACTER_HEIGHT,
   DEFAULT_CHARACTER_RADIUS,
   DEFAULT_CHARACTER_WIDTH,
-  MOVEMENT_IMPULSE_MULTIPLIER,
   MOVEMENT_VELOCITY_THRESHOLD_SQ,
 } from '../constants';
 import {
-  decomposeDirection,
   getDisplayDirection,
   getVelocityForDirection,
   composeDirection,
@@ -142,7 +140,7 @@ Game_CharacterBase.prototype.moveStraight = function (d) {
   const velocity = getVelocityForDirection(d, speed);
 
   // Apply movement impulse (tracks intentional movement for collision resolution)
-  const impulse = velocity.multiply(this.body.mass * MOVEMENT_IMPULSE_MULTIPLIER);
+  const impulse = velocity.multiply(this.body.mass);
   this.body.applyMovement(impulse);
 
   // Maintain compatibility with step counting

@@ -18,12 +18,6 @@ export const CHARACTER_MATERIAL = new Material(0.5, 0.8);
 // ===== Movement Constants =====
 
 /**
- * Impulse multiplier for character movement
- * Higher values = faster acceleration response to input
- */
-export const MOVEMENT_IMPULSE_MULTIPLIER = 20;
-
-/**
  * Velocity threshold for determining if a character is moving
  * Below this squared magnitude, the character is considered stopped
  */
