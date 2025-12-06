@@ -2,14 +2,9 @@
 // Scene_Map
 //=============================================================================
 
-import { Body, Circle, Material, Rectangle, Vector, World } from 'physics-engine';
-import { DEFAULT_CHARACTER_RADIUS, EDGE_THICKNESS, TILE_CENTER_OFFSET } from '../constants';
-import { toWorldSize, toWorldCoords, fromWorldCoords, aggregateEdgeArray, aggregateIntoRectangles } from '../utilities/map';
-
-// Export helpers globally for Game_CharacterBase access
-window._physick_toWorldCoords = toWorldCoords;
-window._physick_fromWorldCoords = fromWorldCoords;
-window._physick_toWorldSize = toWorldSize;
+import { Body, Rectangle, Vector, World } from 'physics-engine';
+import { DEFAULT_CHARACTER_RADIUS, EDGE_THICKNESS } from '../constants';
+import { toWorldSize, aggregateEdgeArray, aggregateIntoRectangles } from '../utilities/map';
 
 const _Scene_Map_onMapLoaded = Scene_Map.prototype.onMapLoaded;
 Scene_Map.prototype.onMapLoaded = function () {
@@ -41,8 +36,8 @@ Scene_Map.prototype.initPhysickWorld = function () {
 
   // Filter out edges from full tiles and create thin bodies for partial edges
   const partialEdges = {
-    horizontal: edges.horizontal.filter(e => !e.isFullTile),
-    vertical: edges.vertical.filter(e => !e.isFullTile)
+    horizontal: edges.horizontal.filter((e) => !e.isFullTile),
+    vertical: edges.vertical.filter((e) => !e.isFullTile),
   };
   const aggregatedEdges = this.aggregateEdges(partialEdges);
   this.createEdgeBodies(aggregatedEdges);

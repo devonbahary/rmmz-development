@@ -18,13 +18,14 @@ import {
   getVelocityForDirection,
   composeDirection,
 } from '../utilities/character';
+import { toWorldCoords, fromWorldCoords, toWorldSize } from '../utilities/map';
 
 // Property overrides to read from physics body when present
 Object.defineProperties(Game_CharacterBase.prototype, {
   x: {
     get: function () {
       if (this.body) {
-        const tiles = window._physick_fromWorldCoords(this.body.position.x, this.body.position.y);
+        const tiles = fromWorldCoords(this.body.position.x, this.body.position.y);
         return tiles.x;
       }
       return this._x;
@@ -34,7 +35,7 @@ Object.defineProperties(Game_CharacterBase.prototype, {
   y: {
     get: function () {
       if (this.body) {
-        const tiles = window._physick_fromWorldCoords(this.body.position.x, this.body.position.y);
+        const tiles = fromWorldCoords(this.body.position.x, this.body.position.y);
         return tiles.y;
       }
       return this._y;
@@ -44,7 +45,7 @@ Object.defineProperties(Game_CharacterBase.prototype, {
   realX: {
     get: function () {
       if (this.body) {
-        const tiles = window._physick_fromWorldCoords(this.body.position.x, this.body.position.y);
+        const tiles = fromWorldCoords(this.body.position.x, this.body.position.y);
         return tiles.x;
       }
       return this._realX;
@@ -54,7 +55,7 @@ Object.defineProperties(Game_CharacterBase.prototype, {
   realY: {
     get: function () {
       if (this.body) {
-        const tiles = window._physick_fromWorldCoords(this.body.position.x, this.body.position.y);
+        const tiles = fromWorldCoords(this.body.position.x, this.body.position.y);
         return tiles.y;
       }
       return this._realY;
@@ -80,16 +81,16 @@ Game_CharacterBase.prototype.createPhysicsBody = function (world, options = {}) 
   const material = options.material || Material.DEFAULT;
 
   // Get current position in world coordinates
-  const worldPos = window._physick_toWorldCoords(this._x, this._y);
+  const worldPos = toWorldCoords(this._x, this._y);
 
   // Create shape
   let physicsShape;
   if (shape === 'circle') {
-    const radius = window._physick_toWorldSize(options.radius || DEFAULT_CHARACTER_RADIUS);
+    const radius = toWorldSize(options.radius || DEFAULT_CHARACTER_RADIUS);
     physicsShape = new Circle(worldPos, radius);
   } else {
-    const width = window._physick_toWorldSize(options.width || DEFAULT_CHARACTER_WIDTH);
-    const height = window._physick_toWorldSize(options.height || DEFAULT_CHARACTER_HEIGHT);
+    const width = toWorldSize(options.width || DEFAULT_CHARACTER_WIDTH);
+    const height = toWorldSize(options.height || DEFAULT_CHARACTER_HEIGHT);
     physicsShape = Rectangle.fromCenter(worldPos, width, height);
   }
 
@@ -175,8 +176,8 @@ Game_CharacterBase.prototype.jump = function (xPlus, yPlus) {
   }
 
   // Calculate impulse for jump
-  const pixelJumpX = window._physick_toWorldSize(xPlus);
-  const pixelJumpY = window._physick_toWorldSize(yPlus);
+  const pixelJumpX = toWorldSize(xPlus);
+  const pixelJumpY = toWorldSize(yPlus);
   const distance = Math.round(Math.sqrt(xPlus * xPlus + yPlus * yPlus));
   const jumpPeak = 10 + distance - this._moveSpeed;
   const framesForJump = jumpPeak * 2;
@@ -201,7 +202,7 @@ Game_CharacterBase.prototype.setPosition = function (x, y) {
   }
 
   // Convert tile coords to pixel coords and set body position
-  const pixelPos = window._physick_toWorldCoords(x, y);
+  const pixelPos = toWorldCoords(x, y);
   this.body.setPosition(pixelPos);
 
   // Zero out velocity when teleporting
@@ -247,7 +248,7 @@ Game_CharacterBase.prototype.isMoving = function () {
 const _Game_CharacterBase_scrolledX = Game_CharacterBase.prototype.scrolledX;
 Game_CharacterBase.prototype.scrolledX = function () {
   if (this.body) {
-    const tiles = window._physick_fromWorldCoords(this.body.position.x, this.body.position.y);
+    const tiles = fromWorldCoords(this.body.position.x, this.body.position.y);
     return $gameMap.adjustX(tiles.x);
   }
   return _Game_CharacterBase_scrolledX.call(this);
@@ -256,7 +257,7 @@ Game_CharacterBase.prototype.scrolledX = function () {
 const _Game_CharacterBase_scrolledY = Game_CharacterBase.prototype.scrolledY;
 Game_CharacterBase.prototype.scrolledY = function () {
   if (this.body) {
-    const tiles = window._physick_fromWorldCoords(this.body.position.x, this.body.position.y);
+    const tiles = fromWorldCoords(this.body.position.x, this.body.position.y);
     return $gameMap.adjustY(tiles.y);
   }
   return _Game_CharacterBase_scrolledY.call(this);
