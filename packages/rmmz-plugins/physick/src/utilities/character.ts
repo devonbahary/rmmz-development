@@ -1,5 +1,6 @@
 import { Vector } from 'physics-engine';
 import { TILE_CENTER_OFFSET } from '../constants';
+import { toWorldSize } from './map';
 
 /**
  * Decompose dir8 (1-9) into horizontal and vertical components
@@ -79,7 +80,7 @@ export function getVelocityForDirection(d: number, speedInTiles: number): Vector
   }
 
   // Convert to world coordinates and normalize
-  const pixelSpeed = window._physick_toWorldSize(speedInTiles);
+  const pixelSpeed = toWorldSize(speedInTiles);
   const velocity = new Vector(vx, vy);
 
   // Normalize to ensure diagonal movement has same magnitude as cardinal

@@ -30,9 +30,7 @@ Scene_Map.prototype.initPhysickWorld = function () {
   const edges = this.getTileEdges();
 
   // Create optimized full-tile rectangles
-  const fullTiles = this.getImpassableTiles();
-  const collisionRects = this.aggregateIntoRectangles(fullTiles);
-  this.createStaticBodies(collisionRects);
+  this.createStaticBodies();
 
   // Filter out edges from full tiles and create thin bodies for partial edges
   const partialEdges = {
@@ -148,8 +146,11 @@ Scene_Map.prototype.aggregateIntoRectangles = function (tiles) {
 };
 
 // Create static physics bodies from rectangles
-Scene_Map.prototype.createStaticBodies = function (rectangles) {
-  for (const rect of rectangles) {
+Scene_Map.prototype.createStaticBodies = function () {
+  const fullTiles = this.getImpassableTiles();
+  const collisionRects = this.aggregateIntoRectangles(fullTiles);
+
+  for (const rect of collisionRects) {
     // Convert tile coordinates (top-left) to world coordinates
     // RMMZ tiles: (x, y) is the top-left corner of the tile
     // Physics Rectangle needs min (top-left) and max (bottom-right) corners in world space
@@ -167,7 +168,7 @@ Scene_Map.prototype.createStaticBodies = function (rectangles) {
     this.world.addBody(body);
   }
 
-  console.log(`Created ${rectangles.length} collision rectangles from impassable tiles`);
+  console.log(`Created ${collisionRects.length} collision rectangles from impassable tiles`);
 };
 
 // Create thin static physics bodies from edges
