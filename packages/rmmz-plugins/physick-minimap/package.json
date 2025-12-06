@@ -1,0 +1,26 @@
+{
+  "name": "physick-minimap",
+  "version": "0.1.0",
+  "description": "RPG Maker MZ physics minimap plugin - displays physics bodies in real-time",
+  "main": "dist/PhysickMinimap.js",
+  "scripts": {
+    "build": "node ../scripts/build.js",
+    "watch": "node ../scripts/watch.js",
+    "deploy": "npm run build && cp dist/PhysickMinimap.js ../../../rmmz/Project1/js/plugins/PhysickMinimap.js",
+    "dev": "node ../scripts/watch.js",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "rpg-maker",
+    "rmmz",
+    "plugin",
+    "physics",
+    "minimap"
+  ],
+  "author": "Devon",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {
+    "esbuild": "^0.27.0"
+  }
+}

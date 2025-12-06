@@ -21,7 +21,6 @@ Scene_Map.prototype.initPhysickWorld = function () {
   const width = $gameMap.width();
   const height = $gameMap.height();
 
-  console.log('is this even working??');
   this.world = new World({
     spatialCellSize: toWorldSize(1), // spatialCell should be 1 tile in size
     gravity: 10,
