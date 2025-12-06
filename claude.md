@@ -1,8 +1,6 @@
 keep responses short
 
-don't provide code examples unless asked for
+for developing rmmz-plugins:
 
-assume I'm running watch scripts that will automatically build changes so you don't have to
-
-for developing rmmz-plugins, reference only the files you need to in /rmmz-plugins/rmmz-js to understand the RMMZ source code
-if you can't find the classes you're looking for, you can find them in various files in /rmmz/Project1/js
+- you can find the source code for RMMZ organized in /packages/rmmz-plugins/rmmz-js. the file names in the directories that follow match the class names that you want to reference
+- when working in files that overwrite/extend RMMZ classes, try to keep the logic short. if it gets overlong, the logic belongs in a utility file
