@@ -114,7 +114,6 @@ export function getMovementImpulseMultiplier(body: Body): number {
 
   const world = SceneManager._scene.world;
   const gravity = world.getGravity();
-  console.log('gravity', gravity);
 
   const damping = gravity * friction * mass;
   const denominator = 1 - damping * RMMZ_DELTA_TIME;

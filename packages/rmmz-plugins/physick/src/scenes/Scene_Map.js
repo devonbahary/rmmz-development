@@ -4,6 +4,7 @@
 
 import { Body, World } from 'physics-engine';
 import { DEFAULT_CHARACTER_RADIUS, CHARACTER_MATERIAL, RMMZ_DELTA_TIME } from '../constants';
+import { PLUGIN_GRAVITY } from '../index';
 import { toWorldSize, getImpassableTileRects, getImpassableTileEdges } from '../utilities/map';
 
 const _Scene_Map_onMapLoaded = Scene_Map.prototype.onMapLoaded;
@@ -23,7 +24,7 @@ Scene_Map.prototype.initPhysickWorld = function () {
 
   this.world = new World({
     spatialCellSize: toWorldSize(1), // spatialCell should be 1 tile in size
-    gravity: 20,
+    gravity: PLUGIN_GRAVITY,
     timeStep: RMMZ_DELTA_TIME,
     positionIterations: 1,
     velocityIterations: 6,

@@ -9,10 +9,12 @@
  * @author Devon
  *
  * @param gravity
- * @text Gravity
+ * @text World Gravity
  * @type number
- * @default 980
- * @desc Z-axis gravity acceleration (pixels/s²)
+ * @min 1
+ * @max 50
+ * @default 20
+ * @desc Controls movement friction and physics damping. Higher values = more resistance to movement.
  *
  * @help Physick.js - Physics Engine
  *
@@ -24,4 +26,3 @@
  * Access from other plugins:
  *   const world = window.PhysicsWorld();
  */
-
