@@ -5,9 +5,12 @@ import { EDGE_THICKNESS, TILE_CENTER_OFFSET } from '../constants';
  * Convert game units to world size (pixels)
  */
 export function toWorldSize(gameUnit: number): number {
+  return gameUnit * tileSize();
+}
+
+function tileSize() {
   // assuming width + height are the same
-  const pxInGameUnit = Math.max($gameMap.width(), $gameMap.height());
-  return gameUnit * pxInGameUnit;
+  return Math.max($gameMap.tileWidth(), $gameMap.tileHeight());
 }
 
 /**
@@ -23,10 +26,9 @@ export function toWorldCoords(x: number, y: number): Vector {
  * Convert world coordinates to tile coordinates
  */
 export function fromWorldCoords(worldX: number, worldY: number): { x: number; y: number } {
-  const pxInGameUnit = Math.max($gameMap.width(), $gameMap.height());
   return {
-    x: worldX / pxInGameUnit - TILE_CENTER_OFFSET,
-    y: worldY / pxInGameUnit - TILE_CENTER_OFFSET,
+    x: worldX / tileSize() - TILE_CENTER_OFFSET,
+    y: worldY / tileSize() - TILE_CENTER_OFFSET,
   };
 }
 
@@ -242,7 +244,7 @@ export function* getImpassableTileRects() {
     // Convert tile coordinates (top-left) to world coordinates
     // RMMZ tiles: (x, y) is the top-left corner of the tile
     // Physics Rectangle needs min (top-left) and max (bottom-right) corners in world space
-    // Don't use toWorldCoords here since that adds TILE_CENTER_OFFSET for centers
+    // Don't use toWorldCoords here since that adds offset for centers
 
     const minX = toWorldSize(rect.x);
     const minY = toWorldSize(rect.y);
