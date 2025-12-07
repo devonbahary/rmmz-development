@@ -10,11 +10,13 @@ import {
   DEFAULT_CHARACTER_RADIUS,
   DEFAULT_CHARACTER_WIDTH,
   MOVEMENT_VELOCITY_THRESHOLD_SQ,
+  RMMZ_DELTA_TIME,
 } from '../constants';
 import {
   getDisplayDirection,
   getVelocityForDirection,
   composeDirection,
+  getMovementImpulseMultiplier,
 } from '../utilities/character';
 import { toWorldCoords, fromWorldCoords, toWorldSize } from '../utilities/map';
 
@@ -139,8 +141,12 @@ Game_CharacterBase.prototype.moveStraight = function (d) {
   const speed = this.distancePerFrame();
   const velocity = getVelocityForDirection(d, speed);
 
+  // Calculate impulse needed to maintain velocity against damping
+  const dampingMultiplier = getMovementImpulseMultiplier(this.body);
+
+  const impulse = velocity.multiply(dampingMultiplier);
+
   // Apply movement impulse (tracks intentional movement for collision resolution)
-  const impulse = velocity.multiply(this.body.mass);
   this.body.applyMovement(impulse);
 
   // Maintain compatibility with step counting

@@ -3,7 +3,7 @@
 //=============================================================================
 
 import { Body, World } from 'physics-engine';
-import { DEFAULT_CHARACTER_RADIUS, CHARACTER_MATERIAL } from '../constants';
+import { DEFAULT_CHARACTER_RADIUS, CHARACTER_MATERIAL, RMMZ_DELTA_TIME } from '../constants';
 import { toWorldSize, getImpassableTileRects, getImpassableTileEdges } from '../utilities/map';
 
 const _Scene_Map_onMapLoaded = Scene_Map.prototype.onMapLoaded;
@@ -23,8 +23,8 @@ Scene_Map.prototype.initPhysickWorld = function () {
 
   this.world = new World({
     spatialCellSize: toWorldSize(1), // spatialCell should be 1 tile in size
-    gravity: 10,
-    timeStep: 1 / 60,
+    gravity: 20,
+    timeStep: RMMZ_DELTA_TIME,
     positionIterations: 1,
     velocityIterations: 6,
   });
@@ -65,8 +65,7 @@ Scene_Map.prototype.update = function () {
     $gamePlayer.saveScrollPositionForCamera();
 
     // Step physics simulation
-    const deltaTime = 1 / 60; // RMMZ runs at 60 FPS
-    this.world.step(deltaTime);
+    this.world.step(RMMZ_DELTA_TIME);
   }
 
   // Call vanilla update (input processing + camera)

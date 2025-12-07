@@ -18,6 +18,12 @@ export const CHARACTER_MATERIAL = new Material(0.5, 0.8);
 // ===== Movement Constants =====
 
 /**
+ * RMMZ delta time (1/60 second per frame)
+ * RMMZ runs at 60 FPS
+ */
+export const RMMZ_DELTA_TIME = 1 / 60;
+
+/**
  * Velocity threshold for determining if a character is moving
  * Below this squared magnitude, the character is considered stopped
  */

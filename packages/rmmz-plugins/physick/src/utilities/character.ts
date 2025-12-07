@@ -1,5 +1,6 @@
-import { Vector } from 'physics-engine';
+import { Body, Vector } from 'physics-engine';
 import { toWorldSize } from './map';
+import { RMMZ_DELTA_TIME } from '../constants';
 
 /**
  * Decompose dir8 (1-9) into horizontal and vertical components
@@ -95,4 +96,34 @@ export function composeDirection(horz: number, vert: number): number {
   if (horz === 4 && vert === 8) return 7; // Up-Left
   if (horz === 6 && vert === 8) return 9; // Up-Right
   return 5; // Default: no movement
+}
+
+/**
+ * Calculate the impulse multiplier needed to maintain target velocity against damping.
+ * Formula: multiplier = damping / (1 - damping×dt)
+ * Where damping = gravity × friction × mass
+ *
+ * This compensates for velocity lost to friction each frame and converts
+ * from pixels/frame to pixels/second.
+ */
+export function getMovementImpulseMultiplier(body: Body): number {
+  const {
+    material: { friction },
+    mass,
+  } = body;
+
+  const world = SceneManager._scene.world;
+  const gravity = world.getGravity();
+  console.log('gravity', gravity);
+
+  const damping = gravity * friction * mass;
+  const denominator = 1 - damping * RMMZ_DELTA_TIME;
+
+  // Guard against extreme damping values (denominator → 0)
+  if (denominator <= 0.05) {
+    console.warn('Damping is too high - movement may be unstable');
+    return damping; // Fallback approximation
+  }
+
+  return damping / denominator;
 }
