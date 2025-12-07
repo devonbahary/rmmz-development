@@ -257,12 +257,6 @@ Create `plugin-header.js`:
 Create `src/index.js`:
 
 ```javascript
-// Import physics-engine library (if needed)
-import * as CollisionDetection from 'physics-engine';
-
-// Make available globally (required for RMMZ environment)
-window.CollisionDetection = CollisionDetection;
-
 // Get plugin parameters
 window._NewPlugin_params = PluginManager.parameters('NewPlugin');
 
