@@ -91,6 +91,54 @@ dynamicBodies.forEach((shape) => {
   dynamicBodyObjects.push(body);
 });
 
+// Create sensor bodies (green) - trigger zones that detect but don't block
+const sensorShapes = [
+  // Large sensor zone in top-left (clear area)
+  Rectangle.fromCenter(new Vector(80, 150), 80, 120),
+  // Circular sensor zone in top-center (clear area)
+  new Circle(new Vector(520, 85), 60),
+  // Small sensor rectangle near bottom-left (clear area)
+  Rectangle.fromCenter(new Vector(200, 540), 100, 40),
+  // Medium sensor circle on the right-middle (clear area)
+  new Circle(new Vector(710, 280), 45),
+];
+
+const sensorBodies = [];
+sensorShapes.forEach((shape) => {
+  const body = new Body(shape, Material.DEFAULT);
+  body.isSensor = true;
+  body.setStatic();
+  world.addBody(body);
+  sensorBodies.push(body);
+});
+
+// Subscribe to collision events
+world.on('collision-start', (event) => {
+  console.log('[COLLISION-START]', {
+    bodyA: event.bodyA.id,
+    bodyB: event.bodyB.id,
+    isSensor: event.isSensor,
+    contactCount: event.manifold?.contacts.length,
+  });
+});
+
+world.on('collision-active', (event) => {
+  console.log('[COLLISION-ACTIVE]', {
+    bodyA: event.bodyA.id,
+    bodyB: event.bodyB.id,
+    isSensor: event.isSensor,
+    contactCount: event.manifold?.contacts.length,
+  });
+});
+
+world.on('collision-end', (event) => {
+  console.log('[COLLISION-END]', {
+    bodyA: event.bodyA.id,
+    bodyB: event.bodyB.id,
+    isSensor: event.isSensor,
+  });
+});
+
 // Input handling
 const keys = {
   ArrowUp: false,
@@ -149,8 +197,11 @@ function render() {
 
   // Draw all bodies
   for (const body of world.getBodies()) {
-    // Color dynamic bodies blue, static bodies red
-    if (body.isStatic()) {
+    // Color sensor bodies green (transparent), static bodies red, dynamic bodies blue
+    if (body.isSensor) {
+      ctx.fillStyle = 'rgba(74, 255, 74, 0.3)'; // Semi-transparent green
+      ctx.strokeStyle = '#2acc2a';
+    } else if (body.isStatic()) {
       ctx.fillStyle = '#ff4a4a';
       ctx.strokeStyle = '#cc2a2a';
     } else {

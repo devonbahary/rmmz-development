@@ -18,6 +18,10 @@ export { EPSILON, EPSILON_SQ, approxEqual, clamp, approxZero } from './math/Math
 export { Contact } from './collision/Contact';
 export { Manifold } from './collision/Manifold';
 
+// Events
+export { EventEmitter, EventCallback } from './events/EventEmitter';
+export { CollisionEvent, CollisionEventMap } from './events/CollisionEvents';
+
 // Spatial (for advanced users)
 export { BroadPhase } from './spatial/BroadPhase';
 export { SpatialHash } from './spatial/SpatialHash';

@@ -95,8 +95,8 @@ export class SpatialHash implements BroadPhase {
           const bodyA = bodies[i];
           const bodyB = bodies[j];
 
-          // Skip if bodies can't collide
-          if (!bodyA.canCollideWith(bodyB)) {
+          // Skip if bodies can't detect collisions (allows sensors through)
+          if (!bodyA.canDetectCollisionWith(bodyB)) {
             continue;
           }
 

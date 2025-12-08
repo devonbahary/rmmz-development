@@ -8,6 +8,8 @@ import { ContinuousCollisionDetection } from '../collision/ContinuousCollisionDe
 import { Manifold } from '../collision/Manifold';
 import { WorldConfig, DEFAULT_WORLD_CONFIG } from './WorldConfig';
 import { EPSILON } from '../math/MathUtils';
+import { EventEmitter, EventCallback } from '../events/EventEmitter';
+import { CollisionEvent, CollisionEventMap } from '../events/CollisionEvents';
 
 /**
  * Main physics world that orchestrates the simulation
@@ -25,6 +27,8 @@ export class World {
 
   // Collision tracking for events
   private currentCollisions: Set<number>;
+  private previousCollisions: Set<number>;
+  private eventEmitter: EventEmitter<CollisionEventMap>;
 
   // CCD tracking - stores how much time each body has consumed due to TOI movement
   private consumedTime: Map<number, number>;
@@ -46,6 +50,8 @@ export class World {
     this.accumulator = 0;
 
     this.currentCollisions = new Set();
+    this.previousCollisions = new Set();
+    this.eventEmitter = new EventEmitter();
     this.consumedTime = new Map();
   }
 
@@ -72,6 +78,29 @@ export class World {
   clearBodies(): void {
     this.bodies.clear();
     this.broadPhase.clear();
+  }
+
+  // ===== Event System =====
+
+  /**
+   * Register an event listener
+   */
+  on<K extends keyof CollisionEventMap>(event: K, callback: EventCallback<CollisionEventMap[K]>): void {
+    this.eventEmitter.on(event, callback);
+  }
+
+  /**
+   * Unregister an event listener
+   */
+  off<K extends keyof CollisionEventMap>(event: K, callback: EventCallback<CollisionEventMap[K]>): void {
+    this.eventEmitter.off(event, callback);
+  }
+
+  /**
+   * Remove all listeners for a specific event, or all events if no event specified
+   */
+  removeAllListeners(event?: keyof CollisionEventMap): void {
+    this.eventEmitter.removeAllListeners(event);
   }
 
   // ===== Simulation =====
@@ -158,24 +187,39 @@ export class World {
     // 2. COLLISION DETECTION: Detect all collisions at current positions
     // Bodies that moved to TOI are now exactly touching (zero penetration)
     // Other bodies are at their original positions
-    const manifolds: Manifold[] = [];
+    // Separate sensor and regular manifolds
+    const regularManifolds: Manifold[] = [];
+    const sensorManifolds: Manifold[] = [];
+
+    // Swap sets for lifecycle tracking
+    const temp = this.previousCollisions;
+    this.previousCollisions = this.currentCollisions;
+    this.currentCollisions = temp;
     this.currentCollisions.clear();
 
     for (const pair of pairs) {
       const manifold = this.detector.detect(pair.bodyA, pair.bodyB);
       if (manifold && manifold.contacts.length > 0) {
-        manifolds.push(manifold);
-
-        // Track collision for events
         const collisionKey = this.getCollisionKey(pair.bodyA, pair.bodyB);
         this.currentCollisions.add(collisionKey);
+
+        const isSensor = pair.bodyA.isSensor || pair.bodyB.isSensor;
+        if (isSensor) {
+          sensorManifolds.push(manifold);
+        } else {
+          regularManifolds.push(manifold);
+        }
       }
     }
 
+    // Emit events BEFORE resolution
+    this.emitCollisionEvents(regularManifolds, sensorManifolds);
+
     // 3. COLLISION RESOLUTION: Fix velocities and minimal position correction
     // Position correction is minimal since CCD prevents deep penetration
-    if (manifolds.length > 0) {
-      this.resolver.resolve(manifolds, dt);
+    // Only resolve non-sensor collisions
+    if (regularManifolds.length > 0) {
+      this.resolver.resolve(regularManifolds, dt);
     }
 
     // 4. INTEGRATION: Move bodies for remaining time
@@ -241,5 +285,88 @@ export class World {
     // Use Cantor pairing function for unique collision key
     const [a, b] = bodyA.id < bodyB.id ? [bodyA.id, bodyB.id] : [bodyB.id, bodyA.id];
     return ((a + b) * (a + b + 1)) / 2 + b;
+  }
+
+  /**
+   * Decompose a collision key back into body IDs
+   * Inverse of Cantor pairing function
+   */
+  private decomposeCollisionKey(key: number): [number, number] {
+    const w = Math.floor((Math.sqrt(8 * key + 1) - 1) / 2);
+    const t = (w * w + w) / 2;
+    const b = key - t;
+    const a = w - b;
+    return [a, b];
+  }
+
+  /**
+   * Emit collision events for the current frame
+   * Zero overhead when no listeners registered
+   */
+  private emitCollisionEvents(regularManifolds: Manifold[], sensorManifolds: Manifold[]): void {
+    // Early exit if no listeners (zero overhead when not used)
+    if (!this.eventEmitter.hasListeners('collision-start') &&
+        !this.eventEmitter.hasListeners('collision-active') &&
+        !this.eventEmitter.hasListeners('collision-end')) {
+      return;
+    }
+
+    // Build map of current collisions to their manifolds for fast lookup
+    const currentManifoldMap = new Map<number, Manifold>();
+    const allManifolds = [...regularManifolds, ...sensorManifolds];
+
+    for (const manifold of allManifolds) {
+      const key = this.getCollisionKey(manifold.bodyA, manifold.bodyB);
+      currentManifoldMap.set(key, manifold);
+    }
+
+    // Use set operations for efficient lifecycle detection
+    // NEW collisions: in current but not in previous
+    for (const [key, manifold] of currentManifoldMap) {
+      // Skip static-static collisions (not interesting)
+      if (manifold.bodyA.isStatic() && manifold.bodyB.isStatic()) {
+        continue;
+      }
+
+      const isNew = !this.previousCollisions.has(key);
+
+      const event: CollisionEvent = {
+        bodyA: manifold.bodyA,
+        bodyB: manifold.bodyB,
+        isSensor: manifold.bodyA.isSensor || manifold.bodyB.isSensor,
+        manifold: manifold
+      };
+
+      if (isNew) {
+        this.eventEmitter.emit('collision-start', event);
+      } else {
+        this.eventEmitter.emit('collision-active', event);
+      }
+    }
+
+    // ENDED collisions: in previous but not in current
+    for (const prevKey of this.previousCollisions) {
+      if (!this.currentCollisions.has(prevKey)) {
+        // Need to reconstruct bodies for ended events
+        const [idA, idB] = this.decomposeCollisionKey(prevKey);
+        const bodyA = this.getBody(idA);
+        const bodyB = this.getBody(idB);
+
+        if (bodyA && bodyB) {
+          // Skip static-static collisions (not interesting)
+          if (bodyA.isStatic() && bodyB.isStatic()) {
+            continue;
+          }
+
+          const event: CollisionEvent = {
+            bodyA,
+            bodyB,
+            isSensor: bodyA.isSensor || bodyB.isSensor,
+            manifold: undefined // No manifold data for ended collisions
+          };
+          this.eventEmitter.emit('collision-end', event);
+        }
+      }
+    }
   }
 }

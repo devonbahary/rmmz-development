@@ -8,7 +8,66 @@ TypeScript 2D top-down physics engine with collision detection for circles and r
 - Circles and axis-aligned rectangles
 - Impulse-based collision resolution
 - Spatial hash grid optimization
+- **Collision event system** with sensors support
 - Zero runtime dependencies
+
+## Collision Events
+
+The physics engine includes a comprehensive event system for tracking collisions in real-time.
+
+### Event Types
+
+- `collision-start` - Emitted when two bodies first collide
+- `collision-active` - Emitted each frame while two bodies remain in contact
+- `collision-end` - Emitted when two bodies stop colliding
+
+### Sensors
+
+Bodies can be marked as sensors using `body.isSensor = true`. Sensors:
+- Detect collisions and emit events
+- Do NOT resolve collisions (other bodies pass through them)
+- Are perfect for trigger zones, area detection, and gameplay events
+
+### Example Usage
+
+```typescript
+import { World, Body, Circle, Rectangle, Vector } from 'physics-engine';
+
+const world = new World();
+
+// Create a sensor trigger zone
+const sensor = new Body(Rectangle.fromCenter(new Vector(100, 100), 50, 50));
+sensor.isSensor = true;
+sensor.setStatic();
+world.addBody(sensor);
+
+// Listen for collision events
+world.on('collision-start', (event) => {
+  console.log('Collision started!');
+  console.log('Bodies:', event.bodyA, event.bodyB);
+  console.log('Is sensor collision:', event.isSensor);
+
+  // Access collision details (available for start/active events)
+  if (event.manifold) {
+    console.log('Contact points:', event.manifold.contacts.length);
+    console.log('Normal:', event.manifold.contacts[0].normal);
+  }
+});
+
+world.on('collision-end', (event) => {
+  console.log('Collision ended!');
+  // Note: manifold is undefined for collision-end events
+});
+
+// Remove listeners when done
+world.off('collision-start', callback);
+world.removeAllListeners('collision-start'); // Remove all listeners for an event
+world.removeAllListeners(); // Remove all listeners for all events
+```
+
+### Performance
+
+The event system has **zero overhead** when no listeners are registered. Event emission only occurs when listeners are present, making it safe to include in performance-critical applications.
 
 ## Configuration Parameters
 

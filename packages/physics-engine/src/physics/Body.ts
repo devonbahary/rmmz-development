@@ -207,7 +207,17 @@ export class Body {
   }
 
   /**
+   * Check if this body can detect collisions with another based on layer/mask filtering
+   * Used for broad-phase filtering - allows sensors to be detected
+   */
+  canDetectCollisionWith(other: Body): boolean {
+    // Layer/mask filtering (sensors still respect layers)
+    return !!(this.mask & other.layer && other.mask & this.layer);
+  }
+
+  /**
    * Check if this body can collide with another based on layer/mask filtering
+   * Used for collision resolution - excludes sensors
    */
   canCollideWith(other: Body): boolean {
     // Sensors don't resolve collisions
@@ -215,8 +225,7 @@ export class Body {
       return false;
     }
 
-    // Layer/mask filtering
-    return !!(this.mask & other.layer && other.mask & this.layer);
+    return this.canDetectCollisionWith(other);
   }
 
   // ===== Setters =====
