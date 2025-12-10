@@ -1,4 +1,4 @@
-import { World, Body, Circle, Rectangle, Vector, Material } from './dist/esm/index.js';
+import { World, Body, Circle, Rectangle, Vector, Material, COLLISION_START, COLLISION_ACTIVE, COLLISION_END } from './dist/esm/index.js';
 
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
@@ -113,7 +113,7 @@ sensorShapes.forEach((shape) => {
 });
 
 // Subscribe to collision events
-world.on('collision-start', (event) => {
+world.on(COLLISION_START, (event) => {
   console.log('[COLLISION-START]', {
     bodyA: event.bodyA.id,
     bodyB: event.bodyB.id,
@@ -122,7 +122,7 @@ world.on('collision-start', (event) => {
   });
 });
 
-world.on('collision-active', (event) => {
+world.on(COLLISION_ACTIVE, (event) => {
   console.log('[COLLISION-ACTIVE]', {
     bodyA: event.bodyA.id,
     bodyB: event.bodyB.id,
@@ -131,7 +131,7 @@ world.on('collision-active', (event) => {
   });
 });
 
-world.on('collision-end', (event) => {
+world.on(COLLISION_END, (event) => {
   console.log('[COLLISION-END]', {
     bodyA: event.bodyA.id,
     bodyB: event.bodyB.id,

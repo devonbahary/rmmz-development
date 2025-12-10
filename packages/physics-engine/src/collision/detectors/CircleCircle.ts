@@ -4,6 +4,7 @@ import { Manifold } from '../Manifold';
 import { Contact } from '../Contact';
 import { Vector } from '../../math/Vector';
 import { EPSILON } from '../../math/MathUtils';
+import { testCircleCircleOverlap } from '../ShapeOverlap';
 
 /**
  * Detect collision between two circles
@@ -12,15 +13,14 @@ export function detectCircleCircle(bodyA: Body, bodyB: Body): Manifold | null {
   const circleA = bodyA.shape as Circle;
   const circleB = bodyB.shape as Circle;
 
-  // Use squared distance to avoid sqrt
-  const distSq = bodyA.position.distanceSquared(bodyB.position);
-  const radiusSum = circleA.radius + circleB.radius;
-  const radiusSumSq = radiusSum * radiusSum;
-
-  // No collision if distance squared >= radius sum squared
-  if (distSq >= radiusSumSq) {
+  // Use shared overlap test (REUSE!)
+  if (!testCircleCircleOverlap(circleA, circleB)) {
     return null;
   }
+
+  // Calculate distance for normal/penetration calculation
+  const distSq = bodyA.position.distanceSquared(bodyB.position);
+  const radiusSum = circleA.radius + circleB.radius;
 
   const manifold = new Manifold(bodyA, bodyB);
 

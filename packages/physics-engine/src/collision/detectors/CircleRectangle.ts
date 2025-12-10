@@ -5,6 +5,7 @@ import { Manifold } from '../Manifold';
 import { Contact } from '../Contact';
 import { Vector } from '../../math/Vector';
 import { EPSILON, clamp } from '../../math/MathUtils';
+import { testCircleRectangleOverlap } from '../ShapeOverlap';
 
 /**
  * Detect collision between a circle and a rectangle
@@ -17,7 +18,12 @@ export function detectCircleRectangle(bodyA: Body, bodyB: Body): Manifold | null
   const circle = bodyA.shape as Circle;
   const rect = bodyB.shape as Rectangle;
 
-  // Find closest point on rectangle to circle center
+  // Use shared overlap test (REUSE!)
+  if (!testCircleRectangleOverlap(circle, rect)) {
+    return null;
+  }
+
+  // Find closest point on rectangle to circle center (for normal/penetration calculation)
   const closest = new Vector(
     clamp(bodyA.position.x, rect.min.x, rect.max.x),
     clamp(bodyA.position.y, rect.min.y, rect.max.y)
@@ -26,12 +32,6 @@ export function detectCircleRectangle(bodyA: Body, bodyB: Body): Manifold | null
   // Calculate distance from circle center to closest point
   const offset = bodyA.position.subtract(closest);
   const distSq = offset.lengthSquared();
-  const radiusSq = circle.radius * circle.radius;
-
-  // No collision if distance > radius
-  if (distSq > radiusSq + EPSILON) {
-    return null;
-  }
 
   const manifold = new Manifold(bodyA, bodyB);
 

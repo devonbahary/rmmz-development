@@ -1,6 +1,7 @@
 import { Vector } from '../math/Vector';
 import { Body } from '../physics/Body';
 import { AABB } from '../geometry/AABB';
+import { Shape } from '../geometry/Shape';
 import { SpatialHash } from '../spatial/SpatialHash';
 import { CollisionDetector } from '../collision/CollisionDetector';
 import { CollisionResolver } from '../collision/CollisionResolver';
@@ -10,6 +11,8 @@ import { WorldConfig, DEFAULT_WORLD_CONFIG } from './WorldConfig';
 import { EPSILON } from '../math/MathUtils';
 import { EventEmitter, EventCallback } from '../events/EventEmitter';
 import { CollisionEvent, CollisionEventMap } from '../events/CollisionEvents';
+import { COLLISION_START, COLLISION_ACTIVE, COLLISION_END } from '../events/CollisionEventTypes';
+import { testShapeOverlap } from '../collision/ShapeOverlap';
 
 /**
  * Main physics world that orchestrates the simulation
@@ -85,14 +88,20 @@ export class World {
   /**
    * Register an event listener
    */
-  on<K extends keyof CollisionEventMap>(event: K, callback: EventCallback<CollisionEventMap[K]>): void {
+  on<K extends keyof CollisionEventMap>(
+    event: K,
+    callback: EventCallback<CollisionEventMap[K]>
+  ): void {
     this.eventEmitter.on(event, callback);
   }
 
   /**
    * Unregister an event listener
    */
-  off<K extends keyof CollisionEventMap>(event: K, callback: EventCallback<CollisionEventMap[K]>): void {
+  off<K extends keyof CollisionEventMap>(
+    event: K,
+    callback: EventCallback<CollisionEventMap[K]>
+  ): void {
     this.eventEmitter.off(event, callback);
   }
 
@@ -217,9 +226,13 @@ export class World {
 
     // 3. COLLISION RESOLUTION: Fix velocities and minimal position correction
     // Position correction is minimal since CCD prevents deep penetration
-    // Only resolve non-sensor collisions
-    if (regularManifolds.length > 0) {
-      this.resolver.resolve(regularManifolds, dt);
+    // Filter manifolds to only resolve those that should be resolved (based on resolutionMask)
+    const resolvableManifolds = regularManifolds.filter(manifold =>
+      manifold.bodyA.canResolveCollisionWith(manifold.bodyB)
+    );
+
+    if (resolvableManifolds.length > 0) {
+      this.resolver.resolve(resolvableManifolds, dt);
     }
 
     // 4. INTEGRATION: Move bodies for remaining time
@@ -264,6 +277,69 @@ export class World {
     return this.broadPhase.queryRegion(aabb);
   }
 
+  /**
+   * Query all bodies that overlap with the given shape
+   * @param shape - The shape to check for overlaps
+   * @returns Array of unique bodies that overlap with the shape
+   */
+  queryOverlapsWithShape(shape: Shape): Body[] {
+    // Use broad-phase to get nearby candidates
+    const aabb = shape.getAABB();
+    const candidates = this.broadPhase.queryRegion(aabb);
+
+    const overlaps: Body[] = [];
+    const seen = new Set<number>(); // Track body IDs to ensure uniqueness
+
+    for (const candidate of candidates) {
+      // Skip if already added (ensure uniqueness)
+      if (seen.has(candidate.id)) {
+        continue;
+      }
+
+      // Use pure shape overlap test (no Bodies needed!)
+      if (testShapeOverlap(shape, candidate.shape)) {
+        overlaps.push(candidate);
+        seen.add(candidate.id);
+      }
+    }
+
+    return overlaps;
+  }
+
+  /**
+   * Query all bodies that overlap with the given body (excluding the body itself)
+   * @param body - The body to check for overlaps
+   * @returns Array of unique bodies that overlap with the given body
+   */
+  queryOverlapsWithBody(body: Body): Body[] {
+    // Use broad-phase to get nearby candidates
+    const aabb = body.getAABB();
+    const candidates = this.broadPhase.queryRegion(aabb);
+
+    const overlaps: Body[] = [];
+    const seen = new Set<number>(); // Track body IDs to ensure uniqueness
+
+    for (const candidate of candidates) {
+      // Skip self
+      if (candidate.id === body.id) {
+        continue;
+      }
+
+      // Skip if already added (ensure uniqueness)
+      if (seen.has(candidate.id)) {
+        continue;
+      }
+
+      // Use pure shape overlap test
+      if (testShapeOverlap(body.shape, candidate.shape)) {
+        overlaps.push(candidate);
+        seen.add(candidate.id);
+      }
+    }
+
+    return overlaps;
+  }
+
   // ===== Utility =====
 
   getTime(): number {
@@ -301,15 +377,14 @@ export class World {
 
   /**
    * Emit collision events for the current frame
-   * Zero overhead when no listeners registered
+   * Emits to both world (if listeners exist) and individual bodies
    */
   private emitCollisionEvents(regularManifolds: Manifold[], sensorManifolds: Manifold[]): void {
-    // Early exit if no listeners (zero overhead when not used)
-    if (!this.eventEmitter.hasListeners('collision-start') &&
-        !this.eventEmitter.hasListeners('collision-active') &&
-        !this.eventEmitter.hasListeners('collision-end')) {
-      return;
-    }
+    // Check if world has listeners (zero overhead if not)
+    const hasWorldListeners =
+      this.eventEmitter.hasListeners(COLLISION_START) ||
+      this.eventEmitter.hasListeners(COLLISION_ACTIVE) ||
+      this.eventEmitter.hasListeners(COLLISION_END);
 
     // Build map of current collisions to their manifolds for fast lookup
     const currentManifoldMap = new Map<number, Manifold>();
@@ -328,20 +403,31 @@ export class World {
         continue;
       }
 
+      // EVENT MASK FILTERING (unilateral with sensor bypass)
+      // Skip if neither body wants to emit events with the other
+      if (!manifold.bodyA.canEmitEventWith(manifold.bodyB)) {
+        continue;
+      }
+
       const isNew = !this.previousCollisions.has(key);
 
       const event: CollisionEvent = {
         bodyA: manifold.bodyA,
         bodyB: manifold.bodyB,
         isSensor: manifold.bodyA.isSensor || manifold.bodyB.isSensor,
-        manifold: manifold
+        manifold: manifold,
       };
 
-      if (isNew) {
-        this.eventEmitter.emit('collision-start', event);
-      } else {
-        this.eventEmitter.emit('collision-active', event);
+      const eventType = isNew ? COLLISION_START : COLLISION_ACTIVE;
+
+      // Emit to world (global listeners) - only if listeners exist
+      if (hasWorldListeners) {
+        this.eventEmitter.emit(eventType, event);
       }
+
+      // Emit to individual bodies (targeted listeners)
+      manifold.bodyA.emit(eventType, event);
+      manifold.bodyB.emit(eventType, event);
     }
 
     // ENDED collisions: in previous but not in current
@@ -358,13 +444,27 @@ export class World {
             continue;
           }
 
+          // EVENT MASK FILTERING (unilateral with sensor bypass)
+          // Skip if neither body wants to emit events with the other
+          if (!bodyA.canEmitEventWith(bodyB)) {
+            continue;
+          }
+
           const event: CollisionEvent = {
             bodyA,
             bodyB,
             isSensor: bodyA.isSensor || bodyB.isSensor,
-            manifold: undefined // No manifold data for ended collisions
+            manifold: undefined, // No manifold data for ended collisions
           };
-          this.eventEmitter.emit('collision-end', event);
+
+          // Emit to world (global listeners) - only if listeners exist
+          if (hasWorldListeners) {
+            this.eventEmitter.emit(COLLISION_END, event);
+          }
+
+          // Emit to individual bodies (targeted listeners)
+          bodyA.emit(COLLISION_END, event);
+          bodyB.emit(COLLISION_END, event);
         }
       }
     }

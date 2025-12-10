@@ -1,5 +1,6 @@
 import type { Body } from '../physics/Body';
 import type { Manifold } from '../collision/Manifold';
+import { COLLISION_START, COLLISION_ACTIVE, COLLISION_END } from './CollisionEventTypes';
 
 /**
  * Collision event data
@@ -27,11 +28,11 @@ export interface CollisionEvent {
  */
 export interface CollisionEventMap {
   /** Emitted when two bodies first collide */
-  'collision-start': CollisionEvent;
+  [COLLISION_START]: CollisionEvent;
 
   /** Emitted each frame while two bodies remain in contact */
-  'collision-active': CollisionEvent;
+  [COLLISION_ACTIVE]: CollisionEvent;
 
   /** Emitted when two bodies stop colliding */
-  'collision-end': CollisionEvent;
+  [COLLISION_END]: CollisionEvent;
 }

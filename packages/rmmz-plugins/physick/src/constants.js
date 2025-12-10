@@ -5,6 +5,14 @@
 
 import { Material } from 'physics-engine';
 
+export const COLLISION_CATEGORIES = {
+  NONE: 0x0000,
+  STATIC: 0x0001,
+  BELOW_CHARACTERS: 0x0002,
+  SAME_AS_CHARACTERS: 0x0004,
+  ABOVE_CHARACTERS: 0x0008,
+};
+
 // ===== Material Constants =====
 
 /**

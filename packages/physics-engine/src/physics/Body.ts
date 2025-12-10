@@ -3,6 +3,8 @@ import { Shape } from '../geometry/Shape';
 import { AABB } from '../geometry/AABB';
 import { Material } from './Material';
 import { EPSILON, EPSILON_SQ } from '../math/MathUtils';
+import { EventEmitter, EventCallback } from '../events/EventEmitter';
+import { CollisionEventMap } from '../events/CollisionEvents';
 
 let bodyIdCounter = 0;
 
@@ -31,8 +33,21 @@ export class Body {
 
   // Collision properties
   isSensor: boolean; // Detects collisions but doesn't resolve them
-  layer: number; // Collision layer bitmask
-  mask: number; // Collision mask bitmask
+  layer: number; // Collision layer bitmask (which layer this body is on)
+  resolutionMask: number; // Resolution mask (which collisions get physically resolved) - BILATERAL
+  eventMask: number; // Event emission mask (which layers trigger events) - UNILATERAL
+
+  // Per-body collision events
+  private eventEmitter: EventEmitter<CollisionEventMap>;
+
+  /**
+   * Computed collision detection mask
+   * Automatically derived from eventMask | resolutionMask
+   * "Detect collisions where we want events OR resolution"
+   */
+  get collisionMask(): number {
+    return this.eventMask | this.resolutionMask;
+  }
 
   constructor(
     public shape: Shape,
@@ -56,8 +71,13 @@ export class Body {
     this.movementVector = Vector.zero();
 
     this.isSensor = false;
-    this.layer = 1; // Default layer
-    this.mask = 0xffffffff; // Collides with all layers by default
+    this.layer = 0xffffffff; // Default layer
+    this.resolutionMask = 0xffffffff; // Resolves all collisions by default
+    this.eventMask = 0xffffffff; // Emits events for all layers by default
+    // collisionMask is computed as: eventMask | resolutionMask
+
+    // Initialize event emitter
+    this.eventEmitter = new EventEmitter();
 
     // Initialize mass
     this.mass = mass;
@@ -211,21 +231,49 @@ export class Body {
    * Used for broad-phase filtering - allows sensors to be detected
    */
   canDetectCollisionWith(other: Body): boolean {
-    // Layer/mask filtering (sensors still respect layers)
-    return !!(this.mask & other.layer && other.mask & this.layer);
+    // Bilateral collision mask filtering (both bodies must agree)
+    // Sensors still respect collision masks for detection
+    return !!(this.collisionMask & other.layer && other.collisionMask & this.layer);
+  }
+
+  /**
+   * Check if this body can resolve collisions with another based on resolution mask filtering
+   * Used to determine which detected collisions should have physical resolution
+   * BILATERAL check: Both bodies must agree
+   */
+  canResolveCollisionWith(other: Body): boolean {
+    // Sensors never resolve
+    if (this.isSensor || other.isSensor) {
+      return false;
+    }
+
+    // Bilateral resolution mask filtering
+    return !!(this.resolutionMask & other.layer && other.resolutionMask & this.layer);
   }
 
   /**
    * Check if this body can collide with another based on layer/mask filtering
    * Used for collision resolution - excludes sensors
+   * Now delegates to canResolveCollisionWith()
    */
   canCollideWith(other: Body): boolean {
-    // Sensors don't resolve collisions
+    return this.canResolveCollisionWith(other);
+  }
+
+  /**
+   * Check if this body can emit collision events with another based on event mask filtering
+   * UNILATERAL check: Either body matching is sufficient to emit events
+   * SENSOR BYPASS: Sensors ALWAYS emit events regardless of mask settings
+   */
+  canEmitEventWith(other: Body): boolean {
+    // Sensors always emit events (bypass event mask filtering)
     if (this.isSensor || other.isSensor) {
-      return false;
+      return true;
     }
 
-    return this.canDetectCollisionWith(other);
+    // Unilateral event mask check (either body can match)
+    // Event emitted if: (this.eventMask & other.layer) OR (other.eventMask & this.layer)
+    return !!(this.eventMask & other.layer || other.eventMask & this.layer);
   }
 
   // ===== Setters =====
@@ -238,5 +286,45 @@ export class Body {
 
   setVelocity(velocity: Vector): void {
     this.velocity = velocity.clone();
+  }
+
+  // ===== Event System =====
+
+  /**
+   * Register an event listener for this body's collision events
+   */
+  on<K extends keyof CollisionEventMap>(
+    event: K,
+    callback: EventCallback<CollisionEventMap[K]>
+  ): void {
+    this.eventEmitter.on(event, callback);
+  }
+
+  /**
+   * Unregister an event listener
+   */
+  off<K extends keyof CollisionEventMap>(
+    event: K,
+    callback: EventCallback<CollisionEventMap[K]>
+  ): void {
+    this.eventEmitter.off(event, callback);
+  }
+
+  /**
+   * Remove all listeners for a specific event, or all events if no event specified
+   */
+  removeAllListeners(event?: keyof CollisionEventMap): void {
+    this.eventEmitter.removeAllListeners(event);
+  }
+
+  /**
+   * Internal method for World to emit events to this body
+   * @internal
+   */
+  emit<K extends keyof CollisionEventMap>(
+    event: K,
+    data: CollisionEventMap[K]
+  ): void {
+    this.eventEmitter.emit(event, data);
   }
 }

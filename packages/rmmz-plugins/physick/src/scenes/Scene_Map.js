@@ -10,15 +10,16 @@ import { toWorldSize, getImpassableTileRects, getImpassableTileEdges } from '../
 const _Scene_Map_onMapLoaded = Scene_Map.prototype.onMapLoaded;
 Scene_Map.prototype.onMapLoaded = function () {
   _Scene_Map_onMapLoaded.call(this);
-  this.initPhysick();
+  this.initPhysicsEngine();
 };
 
-Scene_Map.prototype.initPhysick = function () {
-  this.initPhysickWorld();
+Scene_Map.prototype.initPhysicsEngine = function () {
+  this.initWorld();
   this.initPhysickPlayer();
+  this.initPhysickEvents();
 };
 
-Scene_Map.prototype.initPhysickWorld = function () {
+Scene_Map.prototype.initWorld = function () {
   const width = $gameMap.width();
   const height = $gameMap.height();
 
@@ -57,6 +58,20 @@ Scene_Map.prototype.initPhysickPlayer = function () {
     mass: 1,
     material: CHARACTER_MATERIAL, // Material(0.5, 0.8) - match test-app.js
   });
+
+  // TODO: temporary for testing, delete me
+  $gamePlayer.onCollisionStart((char) => console.log(`player collided with`, char));
+  $gamePlayer.onCollisionActive((char) => console.log(`player continues to collide with`, char));
+  $gamePlayer.onCollisionEnd((char) => console.log(`player ended collided with`, char));
+};
+
+Scene_Map.prototype.initPhysickEvents = function () {
+  const events = $gameMap.events();
+  for (const event of events) {
+    if (event) {
+      event.createEventPhysicsBody(this.world);
+    }
+  }
 };
 
 const _Scene_Map_update = Scene_Map.prototype.update;
@@ -80,7 +95,14 @@ Scene_Map.prototype.terminate = function () {
     if ($gamePlayer && $gamePlayer.body) {
       $gamePlayer.removePhysicsBody(this.world);
     }
-    // Could also clean up event bodies if we add those later
+
+    // Clean up event bodies
+    const events = $gameMap.events();
+    for (const event of events) {
+      if (event && event.body) {
+        event.removePhysicsBody(this.world);
+      }
+    }
   }
 
   _Scene_Map_terminate.call(this);

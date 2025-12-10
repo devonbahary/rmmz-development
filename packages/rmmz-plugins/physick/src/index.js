@@ -7,4 +7,5 @@ export const PLUGIN_GRAVITY = Number(pluginParams.gravity) || 20;
 
 import './objects/Game_CharacterBase';
 import './objects/Game_Player';
+import './objects/Game_Event';
 import './scenes/Scene_Map';

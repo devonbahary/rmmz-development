@@ -10,6 +10,7 @@ import {
   DEFAULT_CHARACTER_RADIUS,
   DEFAULT_CHARACTER_WIDTH,
   MOVEMENT_VELOCITY_THRESHOLD_SQ,
+  COLLISION_CATEGORIES,
   RMMZ_DELTA_TIME,
 } from '../constants';
 import {
@@ -19,6 +20,7 @@ import {
   getMovementImpulseMultiplier,
 } from '../utilities/character';
 import { toWorldCoords, fromWorldCoords, toWorldSize } from '../utilities/map';
+import { COLLISION_ACTIVE, COLLISION_END, COLLISION_START } from 'physics-engine';
 
 // Property overrides to read from physics body when present
 Object.defineProperties(Game_CharacterBase.prototype, {
@@ -98,8 +100,90 @@ Game_CharacterBase.prototype.createPhysicsBody = function (world, options = {}) 
   const mass = options.mass !== undefined ? options.mass : 1.0;
   this.body = new Body(physicsShape, material, mass);
 
+  this.setBodyMasksForPriorityType();
+
+  // reference the character from the body
+  this.body.character = this;
+
   // Add to world
   world.addBody(this.body);
+};
+
+Game_CharacterBase.prototype.onCollisionStart = function (callback) {
+  this.body.on(COLLISION_START, (collisionEvent) => {
+    this._fromPhysicCollisionEvent(collisionEvent, callback);
+  });
+};
+
+Game_CharacterBase.prototype.offCollisionStart = function (callback) {
+  this.body.off(COLLISION_START, callback);
+};
+
+Game_CharacterBase.prototype.onCollisionActive = function (callback) {
+  this.body.on(COLLISION_ACTIVE, (collisionEvent) => {
+    this._fromPhysicCollisionEvent(collisionEvent, callback);
+  });
+};
+
+Game_CharacterBase.prototype.offCollisionStart = function (callback) {
+  this.body.off(COLLISION_ACTIVE, callback);
+};
+
+Game_CharacterBase.prototype.onCollisionEnd = function (callback) {
+  this.body.on(COLLISION_END, (collisionEvent) => {
+    this._fromPhysicCollisionEvent(collisionEvent, callback);
+  });
+};
+
+Game_CharacterBase.prototype.offCollisionEnd = function (callback) {
+  this.body.off(COLLISION_END, callback);
+};
+
+// translate a physics-engine body-based CollisionEvent -> RMMZ character-based event
+Game_CharacterBase.prototype._fromPhysicCollisionEvent = function (collisionEvent, callback) {
+  const { bodyA, bodyB } = collisionEvent;
+  if (bodyA !== this.body && bodyA.character) callback(bodyA.character);
+  if (bodyB !== this.body && bodyB.character) callback(bodyB.character);
+};
+
+const _Game_CharacterBase_setPriorityType = Game_CharacterBase.prototype.setPriorityType;
+Game_CharacterBase.prototype.setPriorityType = function (priorityType) {
+  _Game_CharacterBase_setPriorityType.call(this, priorityType);
+  if (this.body) this.setBodyMasksForPriorityType();
+};
+
+Game_CharacterBase.prototype.setBodyMasksForPriorityType = function () {
+  let category;
+  switch (this._priorityType) {
+    case 0:
+      category = COLLISION_CATEGORIES.BELOW_CHARACTERS;
+      break;
+    case 1:
+      category = COLLISION_CATEGORIES.SAME_AS_CHARACTERS;
+      break;
+    case 2:
+      category = COLLISION_CATEGORIES.ABOVE_CHARACTERS;
+      break;
+    default:
+      console.warn(
+        `can't recognize priorityType ${this._priorityType} in Game_CharacterBase.setPriorityType; unable to set category`
+      );
+  }
+
+  this.body.layer = category;
+
+  // RESOLUTION MASK: Only resolve collisions with STATIC (walls) + same priority type
+  this.body.resolutionMask = COLLISION_CATEGORIES.STATIC | category;
+
+  // EVENT MASK: Emit events for ALL character priorities (not STATIC)
+  this.body.eventMask =
+    COLLISION_CATEGORIES.BELOW_CHARACTERS |
+    COLLISION_CATEGORIES.SAME_AS_CHARACTERS |
+    COLLISION_CATEGORIES.ABOVE_CHARACTERS;
+
+  // DETECTION MASK (collisionMask): Auto-computed as eventMask | resolutionMask
+  // Result: STATIC + all character priorities
+  // = 0x000E | (0x0001 | category) = 0x000F for all priority types
 };
 
 // Remove physics body from this character

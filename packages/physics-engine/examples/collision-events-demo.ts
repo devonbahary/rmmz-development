@@ -3,7 +3,7 @@
  * Demonstrates the new collision event system with sensors
  */
 
-import { World, Body, Circle, Rectangle, Vector } from '../src/index';
+import { World, Body, Circle, Rectangle, Vector, COLLISION_START, COLLISION_ACTIVE, COLLISION_END } from '../src/index';
 
 // Create a world
 const world = new World({
@@ -30,7 +30,7 @@ world.addBody(wall);
 // Set up event listeners
 console.log('Setting up collision event listeners...\n');
 
-world.on('collision-start', (event) => {
+world.on(COLLISION_START, (event) => {
   const bodyName = (body: Body) => body === ball ? 'ball' : body === sensor ? 'sensor' : 'wall';
   console.log(`[COLLISION START] ${bodyName(event.bodyA)} <-> ${bodyName(event.bodyB)}`);
   if (event.isSensor) {
@@ -41,12 +41,12 @@ world.on('collision-start', (event) => {
   }
 });
 
-world.on('collision-active', (event) => {
+world.on(COLLISION_ACTIVE, (event) => {
   const bodyName = (body: Body) => body === ball ? 'ball' : body === sensor ? 'sensor' : 'wall';
   console.log(`[COLLISION ACTIVE] ${bodyName(event.bodyA)} <-> ${bodyName(event.bodyB)}`);
 });
 
-world.on('collision-end', (event) => {
+world.on(COLLISION_END, (event) => {
   const bodyName = (body: Body) => body === ball ? 'ball' : body === sensor ? 'sensor' : 'wall';
   console.log(`[COLLISION END] ${bodyName(event.bodyA)} <-> ${bodyName(event.bodyB)}`);
   if (event.isSensor) {

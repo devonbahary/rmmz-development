@@ -5,13 +5,13 @@
 // determinants and map scrolling functions.
 
 const _Game_Player_initMembers = Game_Player.prototype.initMembers;
-Game_Player.prototype.initMembers = function() {
+Game_Player.prototype.initMembers = function () {
   _Game_Player_initMembers.call(this);
   this._physickPrevScrollX = null;
   this._physickPrevScrollY = null;
 };
 
-Game_Player.prototype.saveScrollPositionForCamera = function() {
+Game_Player.prototype.saveScrollPositionForCamera = function () {
   if (!this.body) return;
   this._physickPrevScrollX = this.scrolledX();
   this._physickPrevScrollY = this.scrolledY();

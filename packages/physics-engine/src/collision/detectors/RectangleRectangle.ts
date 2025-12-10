@@ -3,7 +3,7 @@ import { Rectangle } from '../../geometry/Rectangle';
 import { Manifold } from '../Manifold';
 import { Contact } from '../Contact';
 import { Vector } from '../../math/Vector';
-import { EPSILON } from '../../math/MathUtils';
+import { testRectangleRectangleOverlap } from '../ShapeOverlap';
 
 /**
  * Detect collision between two axis-aligned rectangles
@@ -12,14 +12,14 @@ export function detectRectangleRectangle(bodyA: Body, bodyB: Body): Manifold | n
   const rectA = bodyA.shape as Rectangle;
   const rectB = bodyB.shape as Rectangle;
 
-  // Calculate overlap on each axis
-  const overlapX = Math.min(rectA.max.x, rectB.max.x) - Math.max(rectA.min.x, rectB.min.x);
-  const overlapY = Math.min(rectA.max.y, rectB.max.y) - Math.max(rectA.min.y, rectB.min.y);
-
-  // No collision if no overlap on either axis
-  if (overlapX <= EPSILON || overlapY <= EPSILON) {
+  // Use shared overlap test (REUSE!)
+  if (!testRectangleRectangleOverlap(rectA, rectB)) {
     return null;
   }
+
+  // Calculate overlap on each axis (for penetration calculation)
+  const overlapX = Math.min(rectA.max.x, rectB.max.x) - Math.max(rectA.min.x, rectB.min.x);
+  const overlapY = Math.min(rectA.max.y, rectB.max.y) - Math.max(rectA.min.y, rectB.min.y);
 
   const manifold = new Manifold(bodyA, bodyB);
 

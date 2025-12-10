@@ -17,10 +17,23 @@ export { EPSILON, EPSILON_SQ, approxEqual, clamp, approxZero } from './math/Math
 // Collision (for advanced users)
 export { Contact } from './collision/Contact';
 export { Manifold } from './collision/Manifold';
+export {
+  testShapeOverlap,
+  testCircleCircleOverlap,
+  testCircleRectangleOverlap,
+  testRectangleRectangleOverlap
+} from './collision/ShapeOverlap';
 
 // Events
 export { EventEmitter, EventCallback } from './events/EventEmitter';
 export { CollisionEvent, CollisionEventMap } from './events/CollisionEvents';
+export {
+  COLLISION_EVENT_TYPES,
+  COLLISION_START,
+  COLLISION_ACTIVE,
+  COLLISION_END,
+  type CollisionEventType
+} from './events/CollisionEventTypes';
 
 // Spatial (for advanced users)
 export { BroadPhase } from './spatial/BroadPhase';
