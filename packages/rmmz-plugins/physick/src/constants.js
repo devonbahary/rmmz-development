@@ -13,6 +13,20 @@ export const COLLISION_CATEGORIES = {
   ABOVE_CHARACTERS: 0x0008,
 };
 
+export const CHARACTER_PRIORITIES = {
+  BELOW_CHARACTERS: 0,
+  SAME_AS_CHARACTERS: 1,
+  ABOVE_CHARACTERS: 2,
+};
+
+export const EVENT_TRIGGERS = {
+  ACTION_BUTTON: 0,
+  PLAYER_TOUCH: 1,
+  EVENT_TOUCH: 2,
+  AUTORUN: 3,
+  PARALLEL: 4,
+};
+
 // ===== Material Constants =====
 
 /**

@@ -11,7 +11,7 @@ import {
   DEFAULT_CHARACTER_WIDTH,
   MOVEMENT_VELOCITY_THRESHOLD_SQ,
   COLLISION_CATEGORIES,
-  RMMZ_DELTA_TIME,
+  CHARACTER_PRIORITIES,
 } from '../constants';
 import {
   getDisplayDirection,
@@ -155,13 +155,13 @@ Game_CharacterBase.prototype.setPriorityType = function (priorityType) {
 Game_CharacterBase.prototype.setBodyMasksForPriorityType = function () {
   let category;
   switch (this._priorityType) {
-    case 0:
+    case CHARACTER_PRIORITIES.BELOW_CHARACTERS:
       category = COLLISION_CATEGORIES.BELOW_CHARACTERS;
       break;
-    case 1:
+    case CHARACTER_PRIORITIES.SAME_AS_CHARACTERS:
       category = COLLISION_CATEGORIES.SAME_AS_CHARACTERS;
       break;
-    case 2:
+    case CHARACTER_PRIORITIES.ABOVE_CHARACTERS:
       category = COLLISION_CATEGORIES.ABOVE_CHARACTERS;
       break;
     default:
