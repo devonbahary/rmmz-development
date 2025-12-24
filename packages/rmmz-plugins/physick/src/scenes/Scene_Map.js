@@ -58,11 +58,6 @@ Scene_Map.prototype.initPhysickPlayer = function () {
     mass: 1,
     material: CHARACTER_MATERIAL, // Material(0.5, 0.8) - match test-app.js
   });
-
-  // TODO: temporary for testing, delete me
-  $gamePlayer.onCollisionStart((char) => console.log(`player collided with`, char));
-  $gamePlayer.onCollisionActive((char) => console.log(`player continues to collide with`, char));
-  $gamePlayer.onCollisionEnd((char) => console.log(`player ended collided with`, char));
 };
 
 Scene_Map.prototype.initPhysickEvents = function () {

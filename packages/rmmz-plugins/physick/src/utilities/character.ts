@@ -1,6 +1,6 @@
-import { Body, Vector } from 'physics-engine';
+import { Body, Rectangle, Vector } from 'physics-engine';
 import { toWorldSize } from './map';
-import { RMMZ_DELTA_TIME } from '../constants';
+import { DEFAULT_CHARACTER_HEIGHT, DEFAULT_CHARACTER_WIDTH, RMMZ_DELTA_TIME } from '../constants';
 
 /**
  * Decompose dir8 (1-9) into horizontal and vertical components
@@ -125,4 +125,54 @@ export function getMovementImpulseMultiplier(body: Body): number {
   }
 
   return damping / denominator;
+}
+
+export function createActionDetectionRect(direction: number, center: Vector) {
+  const { x: centerX, y: centerY } = center;
+
+  // Player dimensions in world coordinates (convert from game units to pixels)
+  const width = toWorldSize(DEFAULT_CHARACTER_WIDTH);
+  const height = toWorldSize(DEFAULT_CHARACTER_HEIGHT);
+
+  // Detection area dimensions: front half (0.5) + ahead (1.0) = 1.5x player length
+  const detectionLength = height * 1.5;
+
+  // Calculate rectangle bounds (min/max) based on direction
+  let minX, minY, maxX, maxY;
+
+  switch (direction) {
+    case 2: // Down
+      minX = centerX - width / 2;
+      minY = centerY; // Start at center, extend downward
+      maxX = centerX + width / 2;
+      maxY = centerY + detectionLength;
+      break;
+
+    case 4: // Left
+      minX = centerX - detectionLength; // Extend leftward
+      minY = centerY - width / 2;
+      maxX = centerX;
+      maxY = centerY + width / 2;
+      break;
+
+    case 6: // Right
+      minX = centerX; // Start at center, extend rightward
+      minY = centerY - width / 2;
+      maxX = centerX + detectionLength;
+      maxY = centerY + width / 2;
+      break;
+
+    case 8: // Up
+      minX = centerX - width / 2;
+      minY = centerY - detectionLength; // Extend upward
+      maxX = centerX + width / 2;
+      maxY = centerY;
+      break;
+
+    default:
+      return null;
+  }
+
+  // Create Rectangle shape with min and max vectors
+  return new Rectangle(new Vector(minX, minY), new Vector(maxX, maxY));
 }
